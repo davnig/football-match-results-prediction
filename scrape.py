@@ -28,7 +28,7 @@ def get_and_parse_season_page(browser, season):
     return BeautifulSoup(html, 'html.parser')
 
 
-def scrape_data_by_season_page(bs):
+def scrape_data_by_season_page(bs) -> list[list[str]]:
     print('Scraping data...')
     season_data = []
     # FIND FIRST DIV CONTAINING MATCH DATA
@@ -47,7 +47,6 @@ def scrape_data_by_season_page(bs):
             season_data.append(match_data.split())
         except AttributeError:
             break
-    print(season_data)
     return season_data
 
 
@@ -63,10 +62,11 @@ def scrape_data():
     browser = init_headless_browser()
     years = np.arange(2005, 2021, 1)
     seasons = np.array(["{}-{}".format(years[i], years[i] + 1) for i in range(years.size)])
-    seasons_data = []
+    seasons_data = np.array([])
     # for i in range(seasons.size):
-    for i in range(2):
+    for i in range(seasons.size):
         bs = get_and_parse_season_page(browser, seasons[i])
-        seasons_data = [scrape_data_by_season_page(bs)]
+        seasons_data = np.append(seasons_data, scrape_data_by_season_page(bs), axis=0)
+        # seasons_data = [scrape_data_by_season_page(bs)]
     browser.quit()
     return seasons_data
