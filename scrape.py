@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -7,6 +8,7 @@ from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.wait import WebDriverWait
 
 chrome_options = Options()
+cols = ['date', 'time', 'team_A', 'team_B', 'goal_A', 'goal_B', 'fh_goal_A', 'fh_goal_B']
 
 
 def get_and_parse_season_page(browser, season):
@@ -28,23 +30,56 @@ def get_and_parse_season_page(browser, season):
     return BeautifulSoup(html, 'html.parser')
 
 
-def scrape_data_by_season_page(bs) -> list[list[str]]:
-    print('Scraping data...')
-    season_data = []
-    # FIND FIRST DIV CONTAINING MATCH DATA
-    match_data_parent = bs.find('div', {'id': lambda x: x and x.startswith('g_1_')})
+# ACR Messina
+#
+
+def tokenize_match_data(match_data_parent_tag) -> list[str]:
     match_data = ''
-    for child in match_data_parent.findChildren():
+    for child in match_data_parent_tag.findChildren():
         match_data += child.getText() + ' '
-    season_data.append(match_data.split())
-    # ITERATE OVER THE NEXT SAME ELEMENTS
+    return match_data.split()
+
+
+def handle_special_cases(match_data_list):
+    if 'ACR' in match_data_list:
+        match_data_list.remove('ACR')
+    return match_data_list
+
+
+def format_date(date, season):
+    month = int(date.split('.')[1])
+    if 8 <= month <= 12:
+        date = date + season.split('-')[0]
+    else:
+        date = date + season.split('-')[1]
+    return date
+
+
+def scrape_data_from_season_page(bs: BeautifulSoup, season: str) -> pd.DataFrame:
+    print('Scraping data...')
+    # season_data = pd.DataFrame(columns=columns)
+    # FIND FIRST MATCH DATA
+    match_data_parent_tag = bs.find('div', {'id': lambda x: x and x.startswith('g_1_')})
+    match_data_list = tokenize_match_data(match_data_parent_tag)
+    # HANDLE SPECIAL CASE OF 'ACR Messina'
+    match_data_list = handle_special_cases(match_data_list)
+    # FORMAT DATE
+    match_data_list[0] = format_date(match_data_list[0], season)
+    # CONSTRUCT DATAFRAME
+    match_df = pd.DataFrame([match_data_list], columns=cols)
+    season_data = match_df
+    # FIND ALL NEXT MATCH DATA
     while True:
         try:
-            match_data_parent = match_data_parent.find_next('div', {'id': lambda x: x and x.startswith('g_1_')})
-            match_data = ''
-            for child in match_data_parent.findChildren():
-                match_data += child.getText() + ' '
-            season_data.append(match_data.split())
+            match_data_parent_tag = match_data_parent_tag.find_next('div', {'id': lambda x: x and x.startswith('g_1_')})
+            match_data_list = tokenize_match_data(match_data_parent_tag)
+            # HANDLE SPECIAL CASE OF 'ACR Messina'
+            match_data_list = handle_special_cases(match_data_list)
+            # FORMAT DATE
+            match_data_list[0] = format_date(match_data_list[0], season)
+            # CONSTRUCT DATAFRAME
+            match_df = pd.DataFrame([match_data_list], columns=cols)
+            season_data = pd.concat([season_data, match_df], ignore_index=True)
         except AttributeError:
             break
     return season_data
@@ -58,15 +93,14 @@ def init_headless_browser():
         options=chrome_options)
 
 
-def scrape_data():
+def scrape_data() -> pd.DataFrame:
     browser = init_headless_browser()
-    years = np.arange(2005, 2021, 1)
+    years = np.arange(2005, 20021, 1)
     seasons = np.array(["{}-{}".format(years[i], years[i] + 1) for i in range(years.size)])
-    seasons_data = np.array([])
-    # for i in range(seasons.size):
-    for i in range(seasons.size):
-        bs = get_and_parse_season_page(browser, seasons[i])
-        seasons_data = np.append(seasons_data, scrape_data_by_season_page(bs), axis=0)
-        # seasons_data = [scrape_data_by_season_page(bs)]
+    seasons_data = pd.DataFrame(columns=cols)
+    for season in seasons:
+        bs = get_and_parse_season_page(browser, season)
+        season_data = scrape_data_from_season_page(bs, season)
+        seasons_data = pd.concat([seasons_data, season_data])
     browser.quit()
     return seasons_data

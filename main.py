@@ -3,12 +3,10 @@ import pandas as pd
 import scrape as scraper
 
 
-def save_in_csv(data: list[list[str]]):
-    print(data)
-    dataframe = pd.DataFrame(data)
-    dataframe.to_csv('data.csv')
+def save_in_csv(data: pd.DataFrame):
+    data.to_csv('data.csv')
 
 
 if __name__ == '__main__':
-    data = scraper.scrape_data()
-    save_in_csv(data)
+    seasons_data = scraper.scrape_data()
+    save_in_csv(seasons_data)
