@@ -41,6 +41,7 @@ def tokenize_match_data(match_data_parent_tag) -> list[str]:
 
 
 def handle_special_cases(match_data_list):
+    # Change 'ACR Messina' to 'Messina'
     if 'ACR' in match_data_list:
         match_data_list.remove('ACR')
     return match_data_list
@@ -61,7 +62,7 @@ def scrape_data_from_season_page(bs: BeautifulSoup, season: str) -> pd.DataFrame
     # FIND FIRST MATCH DATA
     match_data_parent_tag = bs.find('div', {'id': lambda x: x and x.startswith('g_1_')})
     match_data_list = tokenize_match_data(match_data_parent_tag)
-    # HANDLE SPECIAL CASE OF 'ACR Messina'
+    # HANDLE SPECIAL CASES
     match_data_list = handle_special_cases(match_data_list)
     # FORMAT DATE
     match_data_list[0] = format_date(match_data_list[0], season)
@@ -73,7 +74,9 @@ def scrape_data_from_season_page(bs: BeautifulSoup, season: str) -> pd.DataFrame
         try:
             match_data_parent_tag = match_data_parent_tag.find_next('div', {'id': lambda x: x and x.startswith('g_1_')})
             match_data_list = tokenize_match_data(match_data_parent_tag)
-            # HANDLE SPECIAL CASE OF 'ACR Messina'
+            # HANDLE SPECIAL CASES
+            if 'A' in match_data_list and 'Tav.' in match_data_list:
+                continue
             match_data_list = handle_special_cases(match_data_list)
             # FORMAT DATE
             match_data_list[0] = format_date(match_data_list[0], season)
@@ -95,7 +98,7 @@ def init_headless_browser():
 
 def scrape_data() -> pd.DataFrame:
     browser = init_headless_browser()
-    years = np.arange(2005, 20021, 1)
+    years = np.arange(2005, 2021, 1)
     seasons = np.array(["{}-{}".format(years[i], years[i] + 1) for i in range(years.size)])
     seasons_data = pd.DataFrame(columns=cols)
     for season in seasons:
