@@ -51,56 +51,54 @@ def scrape_match_report(bs: BeautifulSoup):
     return [date, time, referee, home_team, away_team, home_team_score, away_team_score]
 
 
-def read_player_name_inside_parent_tag(player_parent_tag):
+def read_player_name_inside_row_tag(player_row_tag):
     index = 0
-    for el in player_parent_tag.find_all(name='td'):
+    for el in player_row_tag.find_all(name='td'):
         if index == 1:
             return el.getText()
         index += 1
 
 
-def scrape_match_on_pitch_team(on_pitch_team_parent_tag):
+def scrape_players_from_table(table_tag):
     players = []
-    on_pitch_players_parent_tags = on_pitch_team_parent_tag.find(name='tbody').find_all(name='tr')
-    for on_pitch_player_parent_tag in on_pitch_players_parent_tags:
-        dirty_player = read_player_name_inside_parent_tag(on_pitch_player_parent_tag)
+    player_row_tags = table_tag.find(name='tbody').find_all(name='tr')
+    for player_row_tag in player_row_tags:
+        dirty_player = read_player_name_inside_row_tag(player_row_tag)
         player = re.sub(r'[^a-zA-Z ]', '', dirty_player)
         players.append(player)
     return players
 
 
-def scrape_match_on_pitch_home_team(bs: BeautifulSoup):
-    players = []
-    on_pitch_home_team_parent_tag = bs.find(class_='colonna-squadra')
-    return scrape_match_on_pitch_team(on_pitch_home_team_parent_tag)
+def scrape_match_home_team_on_pitch(bs: BeautifulSoup):
+    home_team_on_pitch_table_tag = bs.find_all(class_='tabella')[0]
+    return scrape_players_from_table(home_team_on_pitch_table_tag)
 
 
-def scrape_match_substitutes_home_team(bs: BeautifulSoup):
-    # todo
-    return []
+def scrape_match_home_team_substitutes(bs: BeautifulSoup):
+    home_team_substitutes_table_tag = bs.find_all(class_='tabella')[2]
+    return scrape_players_from_table(home_team_substitutes_table_tag)
 
 
 def scrape_match_home_team(bs: BeautifulSoup):
-    on_pitch_home_team = scrape_match_on_pitch_home_team(bs)
-    substitutes_home_team = scrape_match_substitutes_home_team(bs)
-    return on_pitch_home_team + substitutes_home_team
+    home_team_on_pitch = scrape_match_home_team_on_pitch(bs)
+    home_team_substitutes = scrape_match_home_team_substitutes(bs)
+    return home_team_on_pitch + home_team_substitutes
 
 
-def scrape_match_on_pitch_away_team(bs: BeautifulSoup):
-    away_team = []
-    away_team_parent_tag = bs.find(class_='colonna-squadra').find_next(class_='colonna-squadra')
-    return scrape_match_on_pitch_team(away_team_parent_tag)
+def scrape_match_away_team_on_pitch(bs: BeautifulSoup):
+    away_team_on_pitch_table_tag = bs.find_all(class_='tabella')[1]
+    return scrape_players_from_table(away_team_on_pitch_table_tag)
 
 
-def scrape_match_substitutes_away_team(bs: BeautifulSoup):
-    # todo
-    return []
+def scrape_match_away_team_substitutes(bs: BeautifulSoup):
+    away_team_substitutes_table_tag = bs.find_all(class_='tabella')[3]
+    return scrape_players_from_table(away_team_substitutes_table_tag)
 
 
 def scrape_match_away_team(bs: BeautifulSoup):
-    on_pitch_away_team = scrape_match_on_pitch_away_team(bs)
-    substitutes_home_team = scrape_match_substitutes_away_team(bs)
-    return on_pitch_away_team + substitutes_home_team
+    away_team_on_pitch = scrape_match_away_team_on_pitch(bs)
+    away_team_substitutes = scrape_match_away_team_substitutes(bs)
+    return away_team_on_pitch + away_team_substitutes
 
 
 def scrape_match_teams(bs: BeautifulSoup):
