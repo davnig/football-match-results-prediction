@@ -1,8 +1,8 @@
 import re
+from _csv import writer
 from urllib.request import urlopen
 
 import numpy as np
-import pandas as pd
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -27,6 +27,7 @@ def init_headless_browser():
 
 
 def scrape_round_matches_urls(season, round):
+    print('Scraping uris of all matches of this round...')
     season_and_round_url_part = '{}/UNICO/UNI/{}'.format(season, round)
     url = base_url + 'archivio/' + season_and_round_url_part
     html = urlopen(url)
@@ -131,12 +132,13 @@ def scrape_match_data(match_url):
     return match_report + match_teams
 
 
-def scrape() -> pd.DataFrame:
-    browser = init_headless_browser()
+def scrape():
     years = np.arange(2005, 2006, 1)
     seasons = np.array(["{}-{}".format(years[i], years[i] + 1).replace('-20', '-') for i in range(years.size)])
     rounds = np.arange(1, 39, 1)
-    seasons_data = pd.DataFrame(columns=match_cols)
+    csv = open('data1.csv', 'a', newline='')
+    write_obj = writer(csv)
+    write_obj.writerow(match_cols)
     for season in seasons:
         print("Scraping season {}...".format(season))
         for round in rounds:
@@ -146,7 +148,5 @@ def scrape() -> pd.DataFrame:
                 print("Match nr. {}".format(i + 1))
                 match_url = matches_uris[i]
                 match_data = scrape_match_data(match_url)
-                match_data = pd.DataFrame([match_data], columns=match_cols)
-                seasons_data = pd.concat([seasons_data, match_data], ignore_index=True)
-    browser.quit()
-    return seasons_data
+                write_obj.writerow(match_data)
+    csv.close()
