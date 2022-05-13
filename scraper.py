@@ -10,7 +10,9 @@ from selenium.webdriver.chrome.options import Options
 chrome_options = Options()
 base_url = 'https://www.legaseriea.it/it/serie-a/'
 match_cols = ['date', 'time', 'referee', 'home_team', 'away_team', 'home_team_score', 'away_team_score'] + \
+             ['home_team_coach'] + \
              ['home_player_' + str(i) for i in range(1, 12)] + \
+             ['away_team_coach'] + \
              ['away_player_' + str(i) for i in range(1, 12)]
 
 
@@ -79,10 +81,16 @@ def scrape_match_home_team_substitutes(bs: BeautifulSoup):
     return scrape_players_from_table(home_team_substitutes_table_tag)
 
 
+def scrape_match_home_team_coach(bs: BeautifulSoup):
+    home_team_coach_table_tag = bs.find_all(class_='tabella')[4]
+    return scrape_players_from_table(home_team_coach_table_tag)
+
+
 def scrape_match_home_team(bs: BeautifulSoup):
+    home_team_coach = scrape_match_home_team_coach(bs)
     home_team_on_pitch = scrape_match_home_team_on_pitch(bs)
     home_team_substitutes = scrape_match_home_team_substitutes(bs)
-    return home_team_on_pitch + home_team_substitutes
+    return home_team_coach + home_team_on_pitch + home_team_substitutes
 
 
 def scrape_match_away_team_on_pitch(bs: BeautifulSoup):
@@ -95,10 +103,16 @@ def scrape_match_away_team_substitutes(bs: BeautifulSoup):
     return scrape_players_from_table(away_team_substitutes_table_tag)
 
 
+def scrape_match_away_team_coach(bs: BeautifulSoup):
+    away_team_coach_table_tag = bs.find_all(class_='tabella')[5]
+    return scrape_players_from_table(away_team_coach_table_tag)
+
+
 def scrape_match_away_team(bs: BeautifulSoup):
+    away_team_coach = scrape_match_away_team_coach(bs)
     away_team_on_pitch = scrape_match_away_team_on_pitch(bs)
     away_team_substitutes = scrape_match_away_team_substitutes(bs)
-    return away_team_on_pitch + away_team_substitutes
+    return away_team_coach + away_team_on_pitch + away_team_substitutes
 
 
 def scrape_match_teams(bs: BeautifulSoup):
