@@ -59,26 +59,48 @@ def read_player_name_inside_parent_tag(player_parent_tag):
         index += 1
 
 
-def scrape_match_home_team(bs: BeautifulSoup):
-    home_team = []
-    home_team_parent_tag = bs.find(class_='colonna-squadra')
-    home_team_players_parent_tags = home_team_parent_tag.find(name='tbody').find_all(name='tr')
-    for home_team_player_parent_tag in home_team_players_parent_tags:
-        dirty_player = read_player_name_inside_parent_tag(home_team_player_parent_tag)
+def scrape_match_on_pitch_team(on_pitch_team_parent_tag):
+    players = []
+    on_pitch_players_parent_tags = on_pitch_team_parent_tag.find(name='tbody').find_all(name='tr')
+    for on_pitch_player_parent_tag in on_pitch_players_parent_tags:
+        dirty_player = read_player_name_inside_parent_tag(on_pitch_player_parent_tag)
         player = re.sub(r'[^a-zA-Z ]', '', dirty_player)
-        home_team.append(player)
-    return home_team
+        players.append(player)
+    return players
+
+
+def scrape_match_on_pitch_home_team(bs: BeautifulSoup):
+    players = []
+    on_pitch_home_team_parent_tag = bs.find(class_='colonna-squadra')
+    return scrape_match_on_pitch_team(on_pitch_home_team_parent_tag)
+
+
+def scrape_match_substitutes_home_team(bs: BeautifulSoup):
+    # todo
+    return []
+
+
+def scrape_match_home_team(bs: BeautifulSoup):
+    on_pitch_home_team = scrape_match_on_pitch_home_team(bs)
+    substitutes_home_team = scrape_match_substitutes_home_team(bs)
+    return on_pitch_home_team + substitutes_home_team
+
+
+def scrape_match_on_pitch_away_team(bs: BeautifulSoup):
+    away_team = []
+    away_team_parent_tag = bs.find(class_='colonna-squadra').find_next(class_='colonna-squadra')
+    return scrape_match_on_pitch_team(away_team_parent_tag)
+
+
+def scrape_match_substitutes_away_team(bs: BeautifulSoup):
+    # todo
+    return []
 
 
 def scrape_match_away_team(bs: BeautifulSoup):
-    away_team = []
-    away_team_parent_tag = bs.find(class_='colonna-squadra').find_next(class_='colonna-squadra')
-    away_team_players_parent_tags = away_team_parent_tag.find(name='tbody').find_all(name='tr')
-    for away_team_player_parent_tag in away_team_players_parent_tags:
-        dirty_player = read_player_name_inside_parent_tag(away_team_player_parent_tag)
-        player = re.sub(r'[^a-zA-Z ]', '', dirty_player)
-        away_team.append(player)
-    return away_team
+    on_pitch_away_team = scrape_match_on_pitch_away_team(bs)
+    substitutes_home_team = scrape_match_substitutes_away_team(bs)
+    return on_pitch_away_team + substitutes_home_team
 
 
 def scrape_match_teams(bs: BeautifulSoup):
