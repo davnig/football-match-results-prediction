@@ -10,7 +10,8 @@ from selenium.webdriver.chrome.options import Options
 
 chrome_options = Options()
 base_url = 'https://www.legaseriea.it/it/serie-a/'
-match_cols = ['date', 'time', 'referee', 'home_team', 'away_team', 'home_team_score', 'away_team_score'] + \
+match_cols = ['season', 'round'] + \
+             ['date', 'time', 'referee', 'home_team', 'away_team', 'home_team_score', 'away_team_score'] + \
              ['home_team_coach'] + \
              ['home_player_' + str(i) for i in range(1, 12)] + \
              ['home_substitute_' + str(i) for i in range(1, 8)] + \
@@ -20,7 +21,6 @@ match_cols = ['date', 'time', 'referee', 'home_team', 'away_team', 'home_team_sc
 
 
 def scrape_round_matches_urls(season, round):
-    print('Scraping uris of all matches of this round...')
     season_and_round_url_part = '{}/UNICO/UNI/{}'.format(season, round)
     url = base_url + 'archivio/' + season_and_round_url_part
     html = urlopen(url)
@@ -147,16 +147,15 @@ def fetch_all_matches_pages_async(matches_uris, queue):
 
 
 def scrape():
-    years = np.arange(2005, 2006, 1)
+    years = np.arange(2005, 2011, 1)
     seasons = np.array(["{}-{}".format(years[i], years[i] + 1).replace('-20', '-') for i in range(years.size)])
-    rounds = np.arange(37, 39, 1)
-    csv = open('data1.csv', 'a', newline='')
+    rounds = np.arange(1, 39, 1)
+    csv = open('data.csv', 'a', newline='')
     write_obj = writer(csv)
     write_obj.writerow(match_cols)
     for season in seasons:
-        print("Scraping season {}...".format(season))
         for round in rounds:
-            print("Round {}".format(round))
+            print("Season {} Round {}:".format(season, round))
             matches_uris = scrape_round_matches_urls(season, round)
             queue = Queue()
             fetch_all_matches_pages_async(matches_uris, queue)
@@ -164,5 +163,5 @@ def scrape():
             while scraped_count < 10:
                 match_data = scrape_match_data(queue.get())
                 scraped_count += 1
-                write_obj.writerow(match_data)
+                write_obj.writerow([season, round] + match_data)
     csv.close()
