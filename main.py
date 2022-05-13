@@ -1,6 +1,6 @@
 import pandas as pd
 
-import scrape as scraper
+import scraper
 
 
 def save_in_csv(data: pd.DataFrame):
