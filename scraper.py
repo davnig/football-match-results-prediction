@@ -1,10 +1,11 @@
 import re
+import threading
 from _csv import writer
+from queue import Queue
 from urllib.request import urlopen
 
 import numpy as np
 from bs4 import BeautifulSoup
-from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
 chrome_options = Options()
@@ -16,14 +17,6 @@ match_cols = ['date', 'time', 'referee', 'home_team', 'away_team', 'home_team_sc
              ['away_team_coach'] + \
              ['away_player_' + str(i) for i in range(1, 12)] + \
              ['away_substitute_' + str(i) for i in range(1, 8)]
-
-
-def init_headless_browser():
-    chrome_options.add_argument("--headless")
-    # chrome_options.add_argument("--start-maximised")
-    return webdriver.Chrome(
-        executable_path="D:\\Windows\\Programmi\\phantomjs-2.1.1\\chromedriver_win32\\chromedriver.exe",
-        options=chrome_options)
 
 
 def scrape_round_matches_urls(season, round):
@@ -40,17 +33,28 @@ def scrape_round_matches_urls(season, round):
     return urls
 
 
+def scrape_match_referee(report_parent_div):
+    referee_firstname = report_parent_div.getText().split(':')[3].split(' ')[1]
+    referee_lastname = report_parent_div.getText().split(':')[3].split(' ')[2]
+    return referee_firstname + ' ' + referee_lastname
+
+
+def was_match_won_by_forfeit(report_parent_div):
+    return report_parent_div.getText().__contains__('Partita sospesa')
+
+
 def scrape_match_report(bs: BeautifulSoup):
+    home_team = bs.find(class_='report-squadra squadra-a').getText()
+    away_team = bs.find(class_='report-squadra squadra-b').getText()
+    print("Scraping {} vs {}...".format(home_team, away_team))
     report_parent_div = bs.find(class_='report-data')
+    if was_match_won_by_forfeit(report_parent_div):
+        return ['<sus>' for i in range(1, 8)]
     datetime = report_parent_div.findChild(name='span').getText()
     date = datetime.split(' - ')[0]
     time = datetime.split(' - ')[1]
-    referee_firstname = report_parent_div.getText().split(':')[3].split(' ')[1]
-    referee_lastname = report_parent_div.getText().split(':')[3].split(' ')[2]
-    referee = referee_firstname + ' ' + referee_lastname
-    home_team = bs.find(class_='report-squadra squadra-a').getText()
+    referee = scrape_match_referee(report_parent_div)
     home_team_score = bs.find(class_='squadra-risultato squadra-a').getText()
-    away_team = bs.find(class_='report-squadra squadra-b').getText()
     away_team_score = bs.find(class_='squadra-risultato squadra-b').getText()
     return [date, time, referee, home_team, away_team, home_team_score, away_team_score]
 
@@ -123,19 +127,29 @@ def scrape_match_team_lineups(bs: BeautifulSoup):
     return home_team + away_team
 
 
-def scrape_match_data(match_url):
-    url = base_url + match_url
-    html = urlopen(url)
-    bs = BeautifulSoup(html.read(), 'html.parser')
+def scrape_match_data(bs: BeautifulSoup):
     match_report = scrape_match_report(bs)
     match_teams = scrape_match_team_lineups(bs)
     return match_report + match_teams
 
 
+def fetch_and_parse_and_queue_match_page(match_url, queue):
+    url = base_url + match_url
+    html = urlopen(url)
+    bs = BeautifulSoup(html.read(), 'html.parser')
+    queue.put(bs)
+
+
+def fetch_all_matches_pages_async(matches_uris, queue):
+    threads = [threading.Thread(target=fetch_and_parse_and_queue_match_page, args=(url, queue)) for url in matches_uris]
+    for t in threads:
+        t.start()
+
+
 def scrape():
     years = np.arange(2005, 2006, 1)
     seasons = np.array(["{}-{}".format(years[i], years[i] + 1).replace('-20', '-') for i in range(years.size)])
-    rounds = np.arange(1, 39, 1)
+    rounds = np.arange(37, 39, 1)
     csv = open('data1.csv', 'a', newline='')
     write_obj = writer(csv)
     write_obj.writerow(match_cols)
@@ -144,9 +158,11 @@ def scrape():
         for round in rounds:
             print("Round {}".format(round))
             matches_uris = scrape_round_matches_urls(season, round)
-            for i in range(len(matches_uris)):
-                print("Match nr. {}".format(i + 1))
-                match_url = matches_uris[i]
-                match_data = scrape_match_data(match_url)
+            queue = Queue()
+            fetch_all_matches_pages_async(matches_uris, queue)
+            scraped_count = 0
+            while scraped_count < 10:
+                match_data = scrape_match_data(queue.get())
+                scraped_count += 1
                 write_obj.writerow(match_data)
     csv.close()
