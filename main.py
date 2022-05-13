@@ -8,5 +8,5 @@ def save_in_csv(data: pd.DataFrame):
 
 
 if __name__ == '__main__':
-    seasons_data = scraper.scrape_data()
+    seasons_data = scraper.scrape()
     save_in_csv(seasons_data)

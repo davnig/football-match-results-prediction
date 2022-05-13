@@ -12,8 +12,10 @@ base_url = 'https://www.legaseriea.it/it/serie-a/'
 match_cols = ['date', 'time', 'referee', 'home_team', 'away_team', 'home_team_score', 'away_team_score'] + \
              ['home_team_coach'] + \
              ['home_player_' + str(i) for i in range(1, 12)] + \
+             ['home_substitute_' + str(i) for i in range(1, 8)] + \
              ['away_team_coach'] + \
-             ['away_player_' + str(i) for i in range(1, 12)]
+             ['away_player_' + str(i) for i in range(1, 12)] + \
+             ['away_substitute_' + str(i) for i in range(1, 8)]
 
 
 def init_headless_browser():
@@ -34,7 +36,6 @@ def scrape_round_matches_urls(season, round):
     urls = []
     for tag in matches_a_tags:
         urls.append(tag['href'].replace('/it/serie-a/', ''))
-    print(urls)
     return urls
 
 
@@ -71,6 +72,11 @@ def scrape_players_from_table(table_tag):
     return players
 
 
+def scrape_match_home_team_coach(bs: BeautifulSoup):
+    home_team_coach_table_tag = bs.find_all(class_='tabella')[4]
+    return scrape_players_from_table(home_team_coach_table_tag)
+
+
 def scrape_match_home_team_on_pitch(bs: BeautifulSoup):
     home_team_on_pitch_table_tag = bs.find_all(class_='tabella')[0]
     return scrape_players_from_table(home_team_on_pitch_table_tag)
@@ -81,16 +87,16 @@ def scrape_match_home_team_substitutes(bs: BeautifulSoup):
     return scrape_players_from_table(home_team_substitutes_table_tag)
 
 
-def scrape_match_home_team_coach(bs: BeautifulSoup):
-    home_team_coach_table_tag = bs.find_all(class_='tabella')[4]
-    return scrape_players_from_table(home_team_coach_table_tag)
-
-
-def scrape_match_home_team(bs: BeautifulSoup):
+def scrape_match_home_team_lineup(bs: BeautifulSoup):
     home_team_coach = scrape_match_home_team_coach(bs)
     home_team_on_pitch = scrape_match_home_team_on_pitch(bs)
     home_team_substitutes = scrape_match_home_team_substitutes(bs)
     return home_team_coach + home_team_on_pitch + home_team_substitutes
+
+
+def scrape_match_away_team_coach(bs: BeautifulSoup):
+    away_team_coach_table_tag = bs.find_all(class_='tabella')[5]
+    return scrape_players_from_table(away_team_coach_table_tag)
 
 
 def scrape_match_away_team_on_pitch(bs: BeautifulSoup):
@@ -103,21 +109,16 @@ def scrape_match_away_team_substitutes(bs: BeautifulSoup):
     return scrape_players_from_table(away_team_substitutes_table_tag)
 
 
-def scrape_match_away_team_coach(bs: BeautifulSoup):
-    away_team_coach_table_tag = bs.find_all(class_='tabella')[5]
-    return scrape_players_from_table(away_team_coach_table_tag)
-
-
-def scrape_match_away_team(bs: BeautifulSoup):
+def scrape_match_away_team_lineup(bs: BeautifulSoup):
     away_team_coach = scrape_match_away_team_coach(bs)
     away_team_on_pitch = scrape_match_away_team_on_pitch(bs)
     away_team_substitutes = scrape_match_away_team_substitutes(bs)
     return away_team_coach + away_team_on_pitch + away_team_substitutes
 
 
-def scrape_match_teams(bs: BeautifulSoup):
-    home_team = scrape_match_home_team(bs)
-    away_team = scrape_match_away_team(bs)
+def scrape_match_team_lineups(bs: BeautifulSoup):
+    home_team = scrape_match_home_team_lineup(bs)
+    away_team = scrape_match_away_team_lineup(bs)
     return home_team + away_team
 
 
@@ -126,11 +127,11 @@ def scrape_match_data(match_url):
     html = urlopen(url)
     bs = BeautifulSoup(html.read(), 'html.parser')
     match_report = scrape_match_report(bs)
-    match_teams = scrape_match_teams(bs)
+    match_teams = scrape_match_team_lineups(bs)
     return match_report + match_teams
 
 
-def scrape_data() -> pd.DataFrame:
+def scrape() -> pd.DataFrame:
     browser = init_headless_browser()
     years = np.arange(2005, 2006, 1)
     seasons = np.array(["{}-{}".format(years[i], years[i] + 1).replace('-20', '-') for i in range(years.size)])
@@ -141,8 +142,11 @@ def scrape_data() -> pd.DataFrame:
         for round in rounds:
             print("Round {}".format(round))
             matches_uris = scrape_round_matches_urls(season, round)
-            for match_url in matches_uris:
-                match_data = pd.DataFrame([scrape_match_data(match_url)], columns=match_cols)
+            for i in range(len(matches_uris)):
+                print("Match nr. {}".format(i + 1))
+                match_url = matches_uris[i]
+                match_data = scrape_match_data(match_url)
+                match_data = pd.DataFrame([match_data], columns=match_cols)
                 seasons_data = pd.concat([seasons_data, match_data], ignore_index=True)
     browser.quit()
     return seasons_data
