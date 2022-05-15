@@ -1,0 +1,2 @@
+class MatchNotFoundException(Exception):
+    pass
