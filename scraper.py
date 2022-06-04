@@ -150,7 +150,7 @@ def scrape():
     years = np.arange(2005, 2011, 1)
     seasons = np.array(["{}-{}".format(years[i], years[i] + 1).replace('-20', '-') for i in range(years.size)])
     rounds = np.arange(1, 39, 1)
-    csv = open('data.csv', 'a', newline='')
+    csv = open('train-raw.csv', 'a', newline='')
     write_obj = writer(csv)
     write_obj.writerow(match_cols)
     for season in seasons:
