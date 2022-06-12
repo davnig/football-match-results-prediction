@@ -147,10 +147,11 @@ def fetch_all_matches_pages_async(matches_uris, queue):
 
 
 def scrape():
-    years = np.arange(2005, 2011, 1)
+    years = np.arange(2005, 2021, 1)
     seasons = np.array(["{}-{}".format(years[i], years[i] + 1).replace('-20', '-') for i in range(years.size)])
-    rounds = np.arange(1, 39, 1)
-    csv = open('train-raw.csv', 'a', newline='')
+    print(f'Will scrape data from season {seasons[0]} to season {seasons[-1]}')
+    rounds = np.arange(5, 39, 1)
+    csv = open('train-data.csv', 'a', newline='')
     write_obj = writer(csv)
     write_obj.writerow(match_cols)
     for season in seasons:
@@ -165,3 +166,7 @@ def scrape():
                 scraped_count += 1
                 write_obj.writerow([season, round] + match_data)
     csv.close()
+
+
+if __name__ == '__main__':
+    scrape()
