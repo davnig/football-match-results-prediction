@@ -151,7 +151,7 @@ def scrape():
     seasons = np.array(["{}-{}".format(years[i], years[i] + 1).replace('-20', '-') for i in range(years.size)])
     print(f'Will scrape data from season {seasons[0]} to season {seasons[-1]}')
     rounds = np.arange(1, 39, 1)
-    csv = open('train-data-wrong.csv', 'a', newline='')
+    csv = open('train-data.csv', 'a', newline='')
     write_obj = writer(csv)
     write_obj.writerow(match_cols)
     for season in seasons:
