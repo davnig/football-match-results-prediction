@@ -14,10 +14,10 @@ match_cols = ['season', 'round'] + \
              ['date', 'time', 'referee', 'home_team', 'away_team', 'home_team_score', 'away_team_score'] + \
              ['home_team_coach'] + \
              ['home_player_' + str(i) for i in range(1, 12)] + \
-             ['home_substitute_' + str(i) for i in range(1, 8)] + \
+             ['home_substitute_' + str(i) for i in range(1, 13)] + \
              ['away_team_coach'] + \
              ['away_player_' + str(i) for i in range(1, 12)] + \
-             ['away_substitute_' + str(i) for i in range(1, 8)]
+             ['away_substitute_' + str(i) for i in range(1, 13)]
 
 
 def scrape_round_matches_urls(season, round):
@@ -40,7 +40,8 @@ def scrape_match_referee(report_parent_div):
 
 
 def was_match_won_by_forfeit(report_parent_div):
-    return report_parent_div.getText().__contains__('Partita sospesa')
+    return report_parent_div.getText().__contains__('Partita sospesa') | \
+           report_parent_div.getText().__contains__('Partita non disputata')
 
 
 def scrape_match_report(bs: BeautifulSoup):
@@ -49,7 +50,7 @@ def scrape_match_report(bs: BeautifulSoup):
     print("Scraping {} vs {}...".format(home_team, away_team))
     report_parent_div = bs.find(class_='report-data')
     if was_match_won_by_forfeit(report_parent_div):
-        return ['<sus>' for i in range(1, 8)]
+        return ['<sus>' for _ in range(1, 8)]
     datetime = report_parent_div.findChild(name='span').getText()
     date = datetime.split(' - ')[0]
     time = datetime.split(' - ')[1]
@@ -67,7 +68,7 @@ def read_player_name_inside_row_tag(player_row_tag):
         index += 1
 
 
-def scrape_players_from_table(table_tag):
+def scrape_players_from_table(table_tag) -> list[str]:
     players = []
     player_row_tags = table_tag.find(name='tbody').find_all(name='tr')
     for player_row_tag in player_row_tags:
@@ -77,57 +78,61 @@ def scrape_players_from_table(table_tag):
     return players
 
 
-def scrape_match_home_team_coach(bs: BeautifulSoup):
+def scrape_match_home_team_coach(bs: BeautifulSoup) -> list[str]:
     home_team_coach_table_tag = bs.find_all(class_='tabella')[4]
     return scrape_players_from_table(home_team_coach_table_tag)
 
 
-def scrape_match_home_team_on_pitch(bs: BeautifulSoup):
+def scrape_match_home_team_on_pitch(bs: BeautifulSoup) -> list[str]:
     home_team_on_pitch_table_tag = bs.find_all(class_='tabella')[0]
     return scrape_players_from_table(home_team_on_pitch_table_tag)
 
 
-def scrape_match_home_team_substitutes(bs: BeautifulSoup):
+def scrape_match_home_team_substitutes(bs: BeautifulSoup) -> list[str]:
     home_team_substitutes_table_tag = bs.find_all(class_='tabella')[2]
     return scrape_players_from_table(home_team_substitutes_table_tag)
 
 
-def scrape_match_home_team_lineup(bs: BeautifulSoup):
+def scrape_match_home_team_lineup(bs: BeautifulSoup) -> list[str]:
     home_team_coach = scrape_match_home_team_coach(bs)
     home_team_on_pitch = scrape_match_home_team_on_pitch(bs)
     home_team_substitutes = scrape_match_home_team_substitutes(bs)
+    # starting from season 2012-13, the number of substitutes is inconsistent
+    home_team_substitutes += ['-' for _ in range(12 - len(home_team_substitutes))]
     return home_team_coach + home_team_on_pitch + home_team_substitutes
 
 
-def scrape_match_away_team_coach(bs: BeautifulSoup):
+def scrape_match_away_team_coach(bs: BeautifulSoup) -> list[str]:
     away_team_coach_table_tag = bs.find_all(class_='tabella')[5]
     return scrape_players_from_table(away_team_coach_table_tag)
 
 
-def scrape_match_away_team_on_pitch(bs: BeautifulSoup):
+def scrape_match_away_team_on_pitch(bs: BeautifulSoup) -> list[str]:
     away_team_on_pitch_table_tag = bs.find_all(class_='tabella')[1]
     return scrape_players_from_table(away_team_on_pitch_table_tag)
 
 
-def scrape_match_away_team_substitutes(bs: BeautifulSoup):
+def scrape_match_away_team_substitutes(bs: BeautifulSoup) -> list[str]:
     away_team_substitutes_table_tag = bs.find_all(class_='tabella')[3]
     return scrape_players_from_table(away_team_substitutes_table_tag)
 
 
-def scrape_match_away_team_lineup(bs: BeautifulSoup):
+def scrape_match_away_team_lineup(bs: BeautifulSoup) -> list[str]:
     away_team_coach = scrape_match_away_team_coach(bs)
     away_team_on_pitch = scrape_match_away_team_on_pitch(bs)
     away_team_substitutes = scrape_match_away_team_substitutes(bs)
+    # starting from season 2012-13, the number of substitutes is inconsistent
+    away_team_substitutes += ['-' for _ in range(12 - len(away_team_substitutes))]
     return away_team_coach + away_team_on_pitch + away_team_substitutes
 
 
-def scrape_match_team_lineups(bs: BeautifulSoup):
+def scrape_match_team_lineups(bs: BeautifulSoup) -> list[str]:
     home_team = scrape_match_home_team_lineup(bs)
     away_team = scrape_match_away_team_lineup(bs)
     return home_team + away_team
 
 
-def scrape_match_data(bs: BeautifulSoup):
+def scrape_match_data(bs: BeautifulSoup) -> list[str]:
     match_report = scrape_match_report(bs)
     match_teams = scrape_match_team_lineups(bs)
     return match_report + match_teams
@@ -158,6 +163,8 @@ def scrape():
         for round in rounds:
             print("Season {} Round {}:".format(season, round))
             matches_uris = scrape_round_matches_urls(season, round)
+            if len(matches_uris) < 10:
+                print(f'WARNING: Only {len(matches_uris)} matches were found in round {round} of season {season}')
             queue = Queue()
             fetch_all_matches_pages_async(matches_uris, queue)
             scraped_count = 0
