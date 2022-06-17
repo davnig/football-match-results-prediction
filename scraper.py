@@ -34,8 +34,12 @@ def scrape_round_matches_urls(season, round):
 
 
 def scrape_match_referee(report_parent_div):
-    referee_firstname = report_parent_div.getText().split(':')[3].split(' ')[1]
-    referee_lastname = report_parent_div.getText().split(':')[3].split(' ')[2]
+    if report_parent_div.getText().__contains__('Stadio:'):
+        referee_firstname = report_parent_div.getText().split(':')[3].split(' ')[1]
+        referee_lastname = report_parent_div.getText().split(':')[3].split(' ')[2]
+    else:
+        referee_firstname = report_parent_div.getText().split(':')[2].split(' ')[1]
+        referee_lastname = report_parent_div.getText().split(':')[2].split(' ')[2]
     return referee_firstname + ' ' + referee_lastname
 
 
@@ -154,24 +158,27 @@ def fetch_all_matches_pages_async(matches_uris, queue):
 def scrape():
     years = np.arange(2005, 2021, 1)
     seasons = np.array(["{}-{}".format(years[i], years[i] + 1).replace('-20', '-') for i in range(years.size)])
+    exp_num_of_matches_per_round = 10
     print(f'Will scrape data from season {seasons[0]} to season {seasons[-1]}')
     rounds = np.arange(1, 39, 1)
-    csv = open('train-data.csv', 'a', newline='')
+    csv = open('train-raw.csv', 'a', newline='')
     write_obj = writer(csv)
     write_obj.writerow(match_cols)
     for season in seasons:
         for round in rounds:
             print("Season {} Round {}:".format(season, round))
             matches_uris = scrape_round_matches_urls(season, round)
-            if len(matches_uris) < 10:
-                print(f'WARNING: Only {len(matches_uris)} matches were found in round {round} of season {season}')
             queue = Queue()
             fetch_all_matches_pages_async(matches_uris, queue)
             scraped_count = 0
-            while scraped_count < 10:
+            while scraped_count < len(matches_uris):
                 match_data = scrape_match_data(queue.get())
                 scraped_count += 1
                 write_obj.writerow([season, round] + match_data)
+            if len(matches_uris) < exp_num_of_matches_per_round:
+                print(f'WARNING: Only {len(matches_uris)} matches were found in round {round} of season {season}')
+                for _ in range(exp_num_of_matches_per_round - len(matches_uris)):
+                    write_obj.writerow([season, round] + ['-' for _ in range(len(match_cols) - 2)])
     csv.close()
 
 
