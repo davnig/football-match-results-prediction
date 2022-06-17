@@ -11,11 +11,11 @@ from selenium.webdriver.chrome.options import Options
 chrome_options = Options()
 base_url = 'https://www.legaseriea.it/it/serie-a/'
 match_cols = ['season', 'round'] + \
-             ['date', 'time', 'referee', 'home_team', 'away_team', 'home_team_score', 'away_team_score'] + \
-             ['home_team_coach'] + \
+             ['date', 'time', 'referee', 'home_team', 'away_team', 'home_score', 'away_score'] + \
+             ['home_coach'] + \
              ['home_player_' + str(i) for i in range(1, 12)] + \
              ['home_substitute_' + str(i) for i in range(1, 13)] + \
-             ['away_team_coach'] + \
+             ['away_coach'] + \
              ['away_player_' + str(i) for i in range(1, 12)] + \
              ['away_substitute_' + str(i) for i in range(1, 13)]
 
