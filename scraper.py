@@ -161,7 +161,7 @@ def scrape():
     exp_num_of_matches_per_round = 10
     print(f'Will scrape data from season {seasons[0]} to season {seasons[-1]}')
     rounds = np.arange(1, 39, 1)
-    csv = open('train-raw.csv', 'a', newline='')
+    csv = open('raw.csv', 'a', newline='')
     write_obj = writer(csv)
     write_obj.writerow(match_cols)
     for season in seasons:
