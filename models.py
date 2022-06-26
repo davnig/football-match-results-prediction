@@ -8,9 +8,9 @@ from torch.utils.data import Dataset
 from torch.utils.data import random_split
 
 
-class RNN(nn.Module):
+class HybridRNN(nn.Module):
     def __init__(self, input_size, hidden_size):
-        super(RNN, self).__init__()
+        super(HybridRNN, self).__init__()
         self.hidden_size = hidden_size
         self.linear = nn.Linear(input_size + hidden_size, hidden_size)
         self.tanh = nn.Tanh()
@@ -25,9 +25,9 @@ class RNN(nn.Module):
         return torch.zeros(minibatch_size, self.hidden_size)
 
 
-class NeuralNetwork(nn.Module):
+class HybridMLP(nn.Module):
     def __init__(self, input_size):
-        super(NeuralNetwork, self).__init__()
+        super(HybridMLP, self).__init__()
         self.input_size = input_size
         self.flatten = nn.Flatten()
         self.layers = nn.Sequential(
@@ -48,7 +48,7 @@ class NeuralNetwork(nn.Module):
 
 
 class HybridNetwork(pl.LightningModule):
-    def __init__(self, dataset, rnn_home_model: RNN, rnn_away_model: RNN, mlp_model: NeuralNetwork,
+    def __init__(self, dataset, rnn_home_model: HybridRNN, rnn_away_model: HybridRNN, mlp_model: HybridMLP,
                  learning_rate: float = 0.001, batch_size: int = 32):
         super(HybridNetwork, self).__init__()
         self.dataset = dataset
