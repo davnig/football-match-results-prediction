@@ -26,7 +26,7 @@ if __name__ == '__main__':
     mlp = HybridMLP(hidden_size * 2 + tot_num_of_feats)
     model = HybridNetwork(dataset=dataset, rnn_home_model=rnn_home, rnn_away_model=rnn_away, mlp_model=mlp,
                           learning_rate=learning_rate)
-    logger = TensorBoardLogger("lightning_logs", name="football_results")
+    logger = TensorBoardLogger("lightning_logs", name="hybrid_results")
     trainer = Trainer(gpus=1, max_epochs=num_epochs, logger=logger)
     trainer.fit(model)
     trainer.test(model)
