@@ -5,8 +5,8 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from datasets import SerieAMatchesWithHistoryDataset
 from models import HybridRNN, HybridMLP, HybridNetwork
 
-learning_rate = 0.00001
-num_epochs = 3
+learning_rate = 0.001
+num_epochs = 10
 hidden_size = 256
 
 if __name__ == '__main__':

@@ -131,7 +131,11 @@ class HybridMLP(nn.Module):
             nn.ReLU(),
             nn.Linear(512, 512),
             nn.ReLU(),
-            nn.Linear(512, 3),
+            nn.Linear(512, 256),
+            nn.ReLU(),
+            nn.Linear(256, 128),
+            nn.ReLU(),
+            nn.Linear(128, 3),
             nn.Softmax(dim=1)  # softmax is applied implicitly by CrossEntropyLoss
         )
 
