@@ -34,7 +34,7 @@ class MLP(pl.LightningModule):
             nn.Linear(1280, 512),
             nn.ReLU(),
             nn.Linear(512, 3),
-            nn.Softmax(dim=1)  # softmax is applied implicitly by CrossEntropyLoss
+            nn.Softmax(dim=1)
         )
 
     def setup(self, stage):
@@ -64,9 +64,6 @@ class MLP(pl.LightningModule):
         y_hat = self(x)
         loss = F.cross_entropy(y_hat, y.to(dtype=torch.float))
         tensorboard_logs = {"train_loss": loss}
-        # print(x[0])
-        # print(f'y: {y[0]}')
-        # print(f'y_hat: {y_hat[0]}')
         return {"loss": loss, "log": tensorboard_logs}
 
     def validation_step(self, batch, batch_idx):
@@ -136,7 +133,7 @@ class HybridMLP(nn.Module):
             nn.Linear(256, 128),
             nn.ReLU(),
             nn.Linear(128, 3),
-            nn.Softmax(dim=1)  # softmax is applied implicitly by CrossEntropyLoss
+            nn.Softmax(dim=1)
         )
 
     def forward(self, x):

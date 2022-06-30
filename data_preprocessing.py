@@ -3,14 +3,7 @@ from pandas import DataFrame
 
 from MatchResult import MatchResult
 
-match_cols = ['season', 'round'] + \
-             ['date', 'time', 'referee', 'home_team', 'away_team', 'home_score', 'away_score'] + \
-             ['home_coach'] + \
-             ['home_player_' + str(i) for i in range(1, 12)] + \
-             ['home_substitute_' + str(i) for i in range(1, 13)] + \
-             ['away_coach'] + \
-             ['away_player_' + str(i) for i in range(1, 12)] + \
-             ['away_substitute_' + str(i) for i in range(1, 13)]
+INCLUDE_PLAYERS = True
 
 
 def data_fixing(df: DataFrame):
@@ -215,6 +208,12 @@ def data_encoding(df: DataFrame):
         print(f'df shape after players encoding: {df.shape}')
         return df
 
+    def remove_players(df: DataFrame):
+        player_columns = get_column_names_containing_str(df, 'player')
+        player_columns += get_column_names_containing_str(df, 'substitute')
+        df = df.drop(player_columns, axis=1)
+        return df
+
     def encode_remaining_feats(df: DataFrame):
         df = pd.get_dummies(df)
         return df
@@ -248,7 +247,10 @@ def data_encoding(df: DataFrame):
         return df
 
     df = encode_seasons(df)
-    df = encode_players(df)
+    if INCLUDE_PLAYERS:
+        df = encode_players(df)
+    else:
+        df = remove_players(df)
     df = encode_remaining_feats(df)
     df = shift_home_team_cols_to_end(df)
     df = shift_away_team_cols_to_end(df)

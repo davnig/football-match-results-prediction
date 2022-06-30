@@ -10,10 +10,11 @@ num_epochs = 10
 hidden_size = 256
 
 if __name__ == '__main__':
-    df = pd.read_csv('data.csv')
+    csv_name = 'data.csv'
+    df = pd.read_csv(csv_name)
     tot_num_of_feats = len(df.columns)
     del df
-    dataset = SerieAMatchesWithHistoryDataset(csv_file='data.csv')
+    dataset = SerieAMatchesWithHistoryDataset(csv_file=csv_name)
     rnn_home = HybridRNN(input_size=tot_num_of_feats, hidden_size=hidden_size)
     rnn_away = HybridRNN(input_size=tot_num_of_feats, hidden_size=hidden_size)
     mlp = HybridMLP(hidden_size * 2 + tot_num_of_feats)
