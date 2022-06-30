@@ -8,6 +8,13 @@ from torch.utils.data import Dataset
 from torch.utils.data import random_split
 
 
+def accuracy(y, y_hat):
+    _, pred_classes = torch.topk(y_hat, 1)
+    _, target_classes = torch.topk(y, 1)
+    correct = (pred_classes == target_classes).sum(dim=0)
+    return (correct / y.shape[0]).item()
+
+
 class MLP(pl.LightningModule):
     def __init__(self, dataset, input_size: int, learning_rate: float = 0.001, batch_size: int = 32):
         super(MLP, self).__init__()
@@ -54,36 +61,33 @@ class MLP(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         x, y = batch
-        y = y.to(dtype=torch.float)
         y_hat = self(x)
-        loss = F.cross_entropy(y_hat, y)
+        loss = F.cross_entropy(y_hat, y.to(dtype=torch.float))
         tensorboard_logs = {"train_loss": loss}
-        print(x[0])
-        print(f'y: {y[0]}')
-        print(f'y_hat: {y_hat[0]}')
+        # print(x[0])
+        # print(f'y: {y[0]}')
+        # print(f'y_hat: {y_hat[0]}')
         return {"loss": loss, "log": tensorboard_logs}
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
-        y = y.to(dtype=torch.float)
-        val_loss = F.cross_entropy(y_hat, y)
-        val_accuracy = self.accuracy(y, y_hat)
-        # print(f'y: {y} y_hat: {y_hat} accuracy: {val_accuracy}')
+        val_loss = F.cross_entropy(y_hat, y.to(dtype=torch.float))
+        val_accuracy = accuracy(y, y_hat)
         return {"val_loss": val_loss, "val_accuracy": val_accuracy}
 
     def validation_epoch_end(self, outputs):
         avg_loss = torch.stack([el["val_loss"] for el in outputs]).mean()
         avg_accuracy = torch.tensor([el["val_accuracy"] for el in outputs]).mean()
         tensorboard_logs = {"val_loss": avg_loss, "val_accuracy": avg_accuracy}
+        print(f'\nval_avg_accuracy: {avg_accuracy} val_avg_loss: {avg_loss}')
         return {"val_loss": avg_loss, "log": tensorboard_logs}
 
     def test_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
-        y = y.to(dtype=torch.float)
-        test_loss = F.cross_entropy(y_hat, y)
-        test_accuracy = self.accuracy(y, y_hat)
+        test_loss = F.cross_entropy(y_hat, y.to(dtype=torch.float))
+        test_accuracy = accuracy(y, y_hat)
         return {"test_loss": test_loss, "test_accuracy": test_accuracy}
 
     def test_epoch_end(self, outputs):
@@ -98,12 +102,6 @@ class MLP(pl.LightningModule):
 
     def configure_optimizers(self):
         return optim.SGD(self.parameters(), lr=self.learning_rate)
-
-    def accuracy(self, y, y_hat):
-        # Assign each y_hat to its predicted class
-        pred_classes = torch.where(y_hat < .5, 0, 1).squeeze().long()
-        correct = (pred_classes == y).sum()
-        return (correct / y.shape[0]).item()
 
 
 class HybridRNN(nn.Module):
@@ -134,12 +132,13 @@ class HybridMLP(nn.Module):
             nn.Linear(512, 512),
             nn.ReLU(),
             nn.Linear(512, 3),
-            # nn.Softmax(dim=1) softmax is applied implicitly by CrossEntropyLoss
+            nn.Softmax(dim=1)  # softmax is applied implicitly by CrossEntropyLoss
         )
 
     def forward(self, x):
         # 'x' is the combination of: 'x', 'x_historical_home', 'x_historical_away'
         # they all have size: minibatch_size x num_of_feats
+        x = x.to(dtype=torch.float)
         x = self.flatten(x)  # just in case x was not flattened
         output = self.layers(x)
         return output
@@ -208,30 +207,27 @@ class HybridNetwork(pl.LightningModule):
         y_hat = self(x, x_historical_home, x_historical_away)
         loss = F.cross_entropy(y_hat, y.to(dtype=torch.float))
         tensorboard_logs = {"train_loss": loss}
-        print(x[0])
-        print(f'y: {y[0]}')
-        print(f'y_hat: {y_hat[0]}')
         return {"loss": loss, "log": tensorboard_logs}
 
     def validation_step(self, batch, batch_idx):
         x, x_historical_home, x_historical_away, y = batch
         y_hat = self(x, x_historical_home, x_historical_away)
         val_loss = F.cross_entropy(y_hat, y.to(dtype=torch.float))
-        val_accuracy = self.accuracy(y, y_hat)
-        # print(f'y: {y} y_hat: {y_hat} accuracy: {val_accuracy}')
+        val_accuracy = accuracy(y, y_hat)
         return {"val_loss": val_loss, "val_accuracy": val_accuracy}
 
     def validation_epoch_end(self, outputs):
         avg_loss = torch.stack([el["val_loss"] for el in outputs]).mean()
         avg_accuracy = torch.tensor([el["val_accuracy"] for el in outputs]).mean()
         tensorboard_logs = {"val_loss": avg_loss, "val_accuracy": avg_accuracy}
+        print(f'val_avg_accuracy: {avg_accuracy} val_avg_loss: {avg_loss}')
         return {"val_loss": avg_loss, "log": tensorboard_logs}
 
     def test_step(self, batch, batch_idx):
         x, x_historical_home, x_historical_away, y = batch
         y_hat = self(x, x_historical_home, x_historical_away)
         test_loss = F.cross_entropy(y_hat, y.to(dtype=torch.float))
-        test_accuracy = self.accuracy(y, y_hat)
+        test_accuracy = accuracy(y, y_hat)
         return {"test_loss": test_loss, "test_accuracy": test_accuracy}
 
     def test_epoch_end(self, outputs):
@@ -246,9 +242,3 @@ class HybridNetwork(pl.LightningModule):
 
     def configure_optimizers(self):
         return optim.SGD(self.parameters(), lr=self.learning_rate)
-
-    def accuracy(self, y, y_hat):
-        # Assign each y_hat to its predicted class
-        pred_classes = torch.where(y_hat < .5, 0, 1).squeeze().long()
-        correct = (pred_classes == y).sum()
-        return (correct / y.shape[0]).item()

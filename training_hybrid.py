@@ -1,5 +1,4 @@
 import pandas as pd
-import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 
@@ -14,12 +13,6 @@ if __name__ == '__main__':
     df = pd.read_csv('data.csv')
     tot_num_of_feats = len(df.columns)
     del df
-    if torch.cuda.is_available():
-        print(torch.cuda.current_device())
-        print(torch.cuda.get_device_name(0))
-        print(torch.cuda.memory_allocated(0))
-        print(torch.cuda.memory_reserved(0))
-        torch.cuda.set_device(0)
     dataset = SerieAMatchesWithHistoryDataset(csv_file='data.csv')
     rnn_home = HybridRNN(input_size=tot_num_of_feats, hidden_size=hidden_size)
     rnn_away = HybridRNN(input_size=tot_num_of_feats, hidden_size=hidden_size)

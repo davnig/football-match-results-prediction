@@ -5,7 +5,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from datasets import SerieAMatchesDataset
 from models import MLP
 
-learning_rate = 0.00001
+learning_rate = 0.001
 num_epochs = 10
 
 if __name__ == '__main__':
