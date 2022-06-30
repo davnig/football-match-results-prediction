@@ -6,7 +6,7 @@ from datasets import SerieAMatchesDataset
 from models import MLP
 
 learning_rate = 0.00001
-num_epochs = 3
+num_epochs = 10
 
 if __name__ == '__main__':
     df = pd.read_csv('data.csv')

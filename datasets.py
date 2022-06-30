@@ -29,7 +29,7 @@ class SerieAMatchesDataset(Dataset):
             return x_tensor, y_tensor
 
         x = self.dataframe.iloc[[idx]]  # df
-        y = self.dataframe[['result_home', 'result_draw', 'result_away']].iloc[0].values
+        y = self.dataframe[['result_home', 'result_draw', 'result_away']].iloc[idx].values
         try:  # if we are not able to fetch at least one historical match, then we switch to another index
             x, y = to_tensor(x, y)
             exp_num_of_features = len(self.dataframe.columns)
@@ -74,7 +74,7 @@ class SerieAMatchesWithHistoryDataset(Dataset):
 
         idx = self.scale_min_idx(idx)
         x = self.dataframe.iloc[[idx]]  # df
-        y = self.dataframe[['result_home', 'result_draw', 'result_away']].iloc[0].values
+        y = self.dataframe[['result_home', 'result_draw', 'result_away']].iloc[idx].values
         try:  # if we are not able to fetch at least one historical match, then we switch to another index
             last_n_games_home, last_n_games_away = self.retrieve_historical_data(x)
             x, x_historical_home, x_historical_away, y = to_tensor(x, last_n_games_home, last_n_games_away, y)

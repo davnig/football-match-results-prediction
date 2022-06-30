@@ -27,7 +27,7 @@ class MLP(pl.LightningModule):
             nn.Linear(1280, 512),
             nn.ReLU(),
             nn.Linear(512, 3),
-            # nn.Softmax(dim=1) softmax is applied implicitly by CrossEntropyLoss
+            nn.Softmax(dim=1)  # softmax is applied implicitly by CrossEntropyLoss
         )
 
     def setup(self, stage):
@@ -47,14 +47,16 @@ class MLP(pl.LightningModule):
 
     def forward(self, x):
         """Compute y_hat from dataloader input"""
+        x = x.to(dtype=torch.float)
         x = self.flatten(x)
         y_hat = self.layers_stack(x)
         return y_hat
 
     def training_step(self, batch, batch_idx):
         x, y = batch
+        y = y.to(dtype=torch.float)
         y_hat = self(x)
-        loss = F.cross_entropy(y_hat, y.to(dtype=torch.float))
+        loss = F.cross_entropy(y_hat, y)
         tensorboard_logs = {"train_loss": loss}
         print(x[0])
         print(f'y: {y[0]}')
@@ -64,7 +66,8 @@ class MLP(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
-        val_loss = F.cross_entropy(y_hat, y.to(dtype=torch.float))
+        y = y.to(dtype=torch.float)
+        val_loss = F.cross_entropy(y_hat, y)
         val_accuracy = self.accuracy(y, y_hat)
         # print(f'y: {y} y_hat: {y_hat} accuracy: {val_accuracy}')
         return {"val_loss": val_loss, "val_accuracy": val_accuracy}
@@ -78,7 +81,8 @@ class MLP(pl.LightningModule):
     def test_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
-        test_loss = F.cross_entropy(y_hat, y.to(dtype=torch.float))
+        y = y.to(dtype=torch.float)
+        test_loss = F.cross_entropy(y_hat, y)
         test_accuracy = self.accuracy(y, y_hat)
         return {"test_loss": test_loss, "test_accuracy": test_accuracy}
 
