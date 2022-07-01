@@ -1,20 +1,20 @@
 import pandas as pd
-from pandas import DataFrame
 
 from MatchResult import MatchResult
 
+# add player names as features
 INCLUDE_PLAYERS = True
 
 
-def data_fixing(df: DataFrame):
+def data_fixing(df: pd.DataFrame):
     """Through manual inspection of the raw dataset, several matches with issues or inconsistent data were detected.
     Let’s fix them. We will use another source of Serie A matches to compare with."""
 
-    def fix_issue_1(df: DataFrame):
+    def fix_issue_1(df: pd.DataFrame):
         """In several matches played by Lazio during the season 2007-08, the goalkeeper Marco Ballotta is missing in
         the lineup, resulting in data shifting and NULL values in column away_substitute_12."""
 
-        def fix_issue_1_home(df: DataFrame, missing_goalkeeper: str):
+        def fix_issue_1_home(df: pd.DataFrame, missing_goalkeeper: str):
             """Fix matches where LAZIO is the home team"""
             to_fix_mask_home = (df['away_substitute_12'].isnull()) & (df['home_team'] == 'LAZIO')
             for index, row in df[to_fix_mask_home].iterrows():
@@ -32,7 +32,7 @@ def data_fixing(df: DataFrame):
                 df.loc[index, 'home_substitute_12'] = '-'
             return df
 
-        def fix_issue_1_away(df: DataFrame, missing_goalkeeper: str):
+        def fix_issue_1_away(df: pd.DataFrame, missing_goalkeeper: str):
             """Fix matches where LAZIO is the away team"""
             to_fix_mask_away = (df['away_substitute_12'].isnull()) & (df['away_team'] == 'LAZIO')
             for index, row in df[to_fix_mask_away].iterrows():
@@ -48,9 +48,6 @@ def data_fixing(df: DataFrame):
             return df
 
         missing_goalkeeper = 'Marco Ballotta'
-        to_fix_mask = (df['away_substitute_12'].isnull()) & (
-                (df['home_team'] == 'LAZIO') | (df['away_team'] == 'LAZIO'))
-        print(f'{len(df[to_fix_mask])} matches left to fix for issue #1')
         df = fix_issue_1_home(df, missing_goalkeeper)
         df = fix_issue_1_away(df, missing_goalkeeper)
         still_to_fix_mask = (df['away_substitute_12'].isnull()) & (
@@ -62,12 +59,10 @@ def data_fixing(df: DataFrame):
             print('issue #1 NOT FIXED')
         return df
 
-    def fix_issue_2(df: DataFrame):
+    def fix_issue_2(df: pd.DataFrame):
         """In round 37, season 2005-06, MESSINA-EMPOLI was suspended at 89’ with score 1-2.
         Then winner of the game was decided to be EMPOLI with a ‘by forfeit’ victory, i.e. 0-3 for EMPOLI.
         We keep the on-pitch score with all the data as the game was about to end when it was suspended."""
-        to_fix_mask = (df['date'] == '<sus>')
-        print(f'{len(df[to_fix_mask])} matches left to fix for issue #2')
         df.loc[361, 'date'] = '07/05/2006'
         df.loc[361, 'time'] = '15:00'
         df.loc[361, 'referee'] = 'DIEGO PRESCHERN'
@@ -83,11 +78,10 @@ def data_fixing(df: DataFrame):
             print('issue #2 NOT FIXED')
         return df
 
-    def fix_issue_3(df: DataFrame):
+    def fix_issue_3(df: pd.DataFrame):
         """In round 4, season 2012-13, CAGLIARI-ROMA was not played and a victory by forfeit was given to ROMA.
         We will discard this match as it does not bring information."""
         to_fix_mask = (df['date'] == '-') & (df['round'] == 4) & (df['season'] == '2012-13')
-        print(f'{len(df[to_fix_mask])} matches left to fix for issue #3')
         df.drop(index=df[to_fix_mask].index.tolist(), inplace=True)
         still_to_fix_mask = (df['date'] == '-') & (df['round'] == 4) & (df['season'] == '2012-13')
         n_still_to_fix = len(df[still_to_fix_mask])
@@ -97,24 +91,28 @@ def data_fixing(df: DataFrame):
             print('issue #3 NOT FIXED')
         return df
 
+    print('===> Phase 1: DATA FIXING ')
     df = fix_issue_1(df)
     df = fix_issue_2(df)
     df = fix_issue_3(df)
+    print('===> Phase 1: DONE')
     return df
 
 
-def data_manipulation(df: DataFrame):
-    def convert_date_str_to_datetime(df: DataFrame):
+def data_manipulation(df: pd.DataFrame):
+    def convert_date_str_to_datetime(df: pd.DataFrame) -> pd.DataFrame:
         df['date'] = pd.to_datetime(df['date'], infer_datetime_format=True)
         return df
 
-    def sort_by_date_column(df: DataFrame):
+    def sort_by_date_column(df: pd.DataFrame) -> pd.DataFrame:
         df = df.sort_values(by='date')
         df = df.reset_index(drop=True)
         return df
 
-    def cast_round_values_to_int(df: DataFrame):
+    def cast_str_values_to_int(df: pd.DataFrame) -> pd.DataFrame:
         df['round'] = df['round'].astype(int)
+        df['home_score'] = df['home_score'].astype(int)
+        df['away_score'] = df['away_score'].astype(int)
         return df
 
     def add_target_column(df: pd.DataFrame) -> pd.DataFrame:
@@ -151,31 +149,34 @@ def data_manipulation(df: DataFrame):
         exploded = get_exploded_datetime_values(df)
         return insert_exploded_datetime_values(df, exploded)
 
-    def drop_date_cols(df: DataFrame):
+    def drop_date_cols(df: pd.DataFrame):
         df = df.drop('date', axis=1, inplace=False)
         df = df.drop('time', axis=1, inplace=False)
         return df
 
+    print('===> Phase 2: DATA MANIPULATION ')
     df = convert_date_str_to_datetime(df)
     df = sort_by_date_column(df)
-    df = cast_round_values_to_int(df)
+    df = cast_str_values_to_int(df)
     df = add_target_column(df)
     df = explode_datetime_values(df)
     df = drop_date_cols(df)
     df = df.dropna()
+    print('===> Phase 2: DONE ')
     return df
 
 
-def data_encoding(df: DataFrame):
+def data_encoding(df: pd.DataFrame):
     def get_column_names_containing_str(df: pd.DataFrame, substring: str) -> list[str]:
         return df.loc[:, df.columns.str.contains(substring)].columns.values.tolist()
 
-    def encode_seasons(df: DataFrame):
+    def encode_seasons(df: pd.DataFrame):
         season2index = {'20' + f'{i + 5}'.zfill(2) + '-' + f'{i + 6}'.zfill(2): i for i in range(16)}
         df['season'] = df['season'].map(season2index)
+        print(f'Seasons encoded. Shape: {df.shape}')
         return df
 
-    def encode_players(df: DataFrame):
+    def encode_players(df: pd.DataFrame):
         """We need to manually one-hot encode the names of the players because we have to consider all the player columns
             to construct a list containing all the unique values. Moreover, the number of substitutes is inconsistent across
             seasons, rounds and matches."""
@@ -205,47 +206,49 @@ def data_encoding(df: DataFrame):
         players_df = pd.DataFrame(result, columns=home_away_player_columns)
         df = df.drop(player_columns, axis=1)
         df = pd.concat([df, players_df.set_index(df.index)], axis=1)
-        print(f'df shape after players encoding: {df.shape}')
+        print(f'Players encoded. Shape: {df.shape}')
         return df
 
-    def remove_players(df: DataFrame):
+    def remove_players(df: pd.DataFrame):
         player_columns = get_column_names_containing_str(df, 'player')
         player_columns += get_column_names_containing_str(df, 'substitute')
         df = df.drop(player_columns, axis=1)
         return df
 
-    def encode_remaining_feats(df: DataFrame):
+    def encode_remaining_feats(df: pd.DataFrame):
         df = pd.get_dummies(df)
+        print(f'Remaining feats encoded. Shape: {df.shape}')
         return df
 
-    def shift_home_team_cols_to_end(df: DataFrame):
+    def shift_home_team_cols_to_end(df: pd.DataFrame):
         cols_to_shift = get_column_names_containing_str(df, 'home_team')
         players_df = df[cols_to_shift].copy()
         df = df.drop(cols_to_shift, axis=1)
         df = pd.concat([df, players_df], axis=1)
         return df
 
-    def shift_away_team_cols_to_end(df: DataFrame):
+    def shift_away_team_cols_to_end(df: pd.DataFrame):
         cols_to_shift = get_column_names_containing_str(df, 'away_team')
         players_df = df[cols_to_shift].copy()
         df = df.drop(cols_to_shift, axis=1)
         df = pd.concat([df, players_df], axis=1)
         return df
 
-    def shift_referee_cols_to_end(df: DataFrame):
+    def shift_referee_cols_to_end(df: pd.DataFrame):
         cols_to_shift = get_column_names_containing_str(df, 'referee')
         players_df = df[cols_to_shift].copy()
         df = df.drop(cols_to_shift, axis=1)
         df = pd.concat([df, players_df], axis=1)
         return df
 
-    def shift_player_cols_to_end(df: DataFrame):
+    def shift_player_cols_to_end(df: pd.DataFrame):
         cols_to_shift = get_column_names_containing_str(df, 'player')
         players_df = df[cols_to_shift].copy()
         df = df.drop(cols_to_shift, axis=1)
         df = pd.concat([df, players_df], axis=1)
         return df
 
+    print('===> Phase 3: DATA ENCODING ')
     df = encode_seasons(df)
     if INCLUDE_PLAYERS:
         df = encode_players(df)
@@ -256,6 +259,7 @@ def data_encoding(df: DataFrame):
     df = shift_away_team_cols_to_end(df)
     df = shift_referee_cols_to_end(df)
     df = shift_player_cols_to_end(df)
+    print('===> Phase 3: DONE ')
     return df
 
 
