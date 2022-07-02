@@ -74,19 +74,12 @@ class SerieAMatchesWithHistoryDataset(Dataset):
 
         idx = self.scale_min_idx(idx)
         x = self.dataframe.iloc[[idx]]  # df
-        y = self.dataframe[['result_home', 'result_draw', 'result_away']].iloc[idx].values
+        y = [x['result_home'].values.tolist()[0], x['result_draw'].values.tolist()[0],
+             x['result_away'].values.tolist()[0]]
+        x = x.drop(columns=['home_score', 'away_score', 'result_home', 'result_draw', 'result_away'])
         try:  # if we are not able to fetch at least one historical match, then we switch to another index
             last_n_games_home, last_n_games_away = self.retrieve_historical_data(x)
             x, x_historical_home, x_historical_away, y = to_tensor(x, last_n_games_home, last_n_games_away, y)
-            exp_num_of_features = len(self.dataframe.columns)
-            if x.shape[0] != exp_num_of_features:
-                show_error(idx, x, x_historical_home, x_historical_away, y)
-            if (x_historical_home.shape[0] != 5) | (x_historical_home.shape[1] != exp_num_of_features):
-                show_error(idx, x, x_historical_home, x_historical_away, y)
-            if (x_historical_away.shape[0] != 5) | (x_historical_away.shape[1] != exp_num_of_features):
-                show_error(idx, x, x_historical_home, x_historical_away, y)
-            if y.shape[0] != 3:
-                show_error(idx, x, x_historical_home, x_historical_away, y)
             return x, x_historical_home, x_historical_away, y
         except MatchNotFoundException:
             new_idx = randrange(0, len(self.dataframe))
@@ -122,18 +115,10 @@ class SerieAMatchesWithHistoryDataset(Dataset):
             the previous ones are iteratively considered, until n matches are found or the end of the dataframe
             is reached, in which case padding is applied to ensure a result size of n."""
 
-            def exists_historical_matches_before_round_and_season(q_round: int, q_season: int) -> bool:
-                if (q_season == 0) & (q_round <= 1):
+            def exists_historical_matches_before_round(q_round: int) -> bool:
+                if q_round <= 1:
                     return False
                 return True
-
-            def decrement_round_in_season(c_round: int, c_season: int) -> (int, int):
-                if c_round - 1 > 0:
-                    c_round -= 1
-                    return c_round, c_season
-                c_season -= 1
-                c_round = 38
-                return c_round, c_season
 
             def fill_with_padding(source: pd.DataFrame):
                 if len(source) < 5:
@@ -151,11 +136,11 @@ class SerieAMatchesWithHistoryDataset(Dataset):
             current_round, current_season = round, season
             result = pd.DataFrame()
             while True:
-                if not exists_historical_matches_before_round_and_season(current_round, current_season):
+                if not exists_historical_matches_before_round(current_round):
                     if result.empty:
                         raise MatchNotFoundException
                     return fill_with_padding(result)
-                current_round, current_season = decrement_round_in_season(current_round, current_season)
+                current_round = current_round - 1
                 historical_match_at_current_round = get_match_by_team_season_round(df, team, current_season,
                                                                                    current_round)
                 if not historical_match_at_current_round.empty:
