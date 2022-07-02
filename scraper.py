@@ -130,6 +130,14 @@ def scrape_match_away_team_lineup(bs: BeautifulSoup) -> list[str]:
     return away_team_coach + away_team_on_pitch + away_team_substitutes
 
 
+def scrape_match_stats(bs: BeautifulSoup) -> list[str]:
+    stats_parent_div = bs.find(class_='numeridelmatch')
+    stats = []
+    for row in stats_parent_div.findChildren(class_='riga'):
+        stats += [row.findChild(class_='valoresx').getText(), row.findChild(class_='valoredx').getText()]
+    return stats
+
+
 def scrape_match_team_lineups(bs: BeautifulSoup) -> list[str]:
     home_team = scrape_match_home_team_lineup(bs)
     away_team = scrape_match_away_team_lineup(bs)
