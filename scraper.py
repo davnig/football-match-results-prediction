@@ -132,9 +132,15 @@ def scrape_match_away_team_lineup(bs: BeautifulSoup) -> list[str]:
 
 def scrape_match_stats(bs: BeautifulSoup) -> list[str]:
     stats_parent_div = bs.find(class_='numeridelmatch')
-    stats = []
+    dict = {}
     for row in stats_parent_div.findChildren(class_='riga'):
-        stats += [row.findChild(class_='valoresx').getText(), row.findChild(class_='valoredx').getText()]
+        dict[row.findChild(class_='valoretitolo').getText()] = \
+            [row.findChild(class_='valoresx').getText(), row.findChild(class_='valoredx').getText()]
+    stats = dict['Parate'] + dict['Rigori'] + dict['Tiri Totali'] + dict['Tiri in porta'] + \
+            dict['Tiri fuori'] + dict['Tiri in porta da area'] + dict['Falli commessi'] + \
+            dict['Pali'] + dict['Assist Totali'] + dict['Fuorigioco'] + dict['Corner'] + \
+            dict['Ammonizioni'] + dict['Espulsioni'] + dict['Cross'] + dict['Lanci lunghi'] + \
+            dict['Attacchi centrali'] + dict['Attacchi a destra'] + dict['Attacchi a sinistra']
     return stats
 
 
@@ -146,8 +152,9 @@ def scrape_match_team_lineups(bs: BeautifulSoup) -> list[str]:
 
 def scrape_match_data(bs: BeautifulSoup) -> list[str]:
     match_report = scrape_match_report(bs)
+    match_stats = scrape_match_stats(bs)
     match_teams = scrape_match_team_lineups(bs)
-    return match_report + match_teams
+    return match_report + match_stats + match_teams
 
 
 def fetch_and_parse_and_queue_match_page(match_url, queue):
