@@ -9,11 +9,17 @@ learning_rate = 0.001
 num_epochs = 10
 hidden_size = 256
 
-if __name__ == '__main__':
-    csv_name = 'data.csv'
-    df = pd.read_csv(csv_name)
-    tot_num_of_feats = len(df.columns)
+
+def count_features(data_csv: str):
+    df = pd.read_csv(data_csv, nrows=1)
+    n_of_features = len(df.columns)
     del df
+    return n_of_features
+
+
+if __name__ == '__main__':
+    csv_name = 'data1.csv'
+    tot_num_of_feats = count_features(csv_name)
     dataset = SerieAMatchesWithHistoryDataset(csv_file=csv_name)
     rnn_home = HybridRNN(input_size=tot_num_of_feats, hidden_size=hidden_size)
     rnn_away = HybridRNN(input_size=tot_num_of_feats, hidden_size=hidden_size)
