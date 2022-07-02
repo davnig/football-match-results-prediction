@@ -3,8 +3,8 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from torchsummary import summary
 
-from datasets import SerieAMatchesWithHistoryDataset
-from models import HybridRNN, HybridMLP, HybridNetwork
+from hybrid.dataset import SerieAMatchesWithHistoryDataset
+from hybrid.model import HybridRNN, HybridMLP, HybridNetwork
 
 learning_rate = 0.001
 num_epochs = 20
@@ -28,7 +28,7 @@ if __name__ == '__main__':
     model = HybridNetwork(dataset=dataset, rnn_home_model=rnn_home, rnn_away_model=rnn_away, mlp_model=mlp,
                           learning_rate=learning_rate)
     print(summary(model))
-    logger = TensorBoardLogger("lightning_logs", name="hybrid_results")
+    logger = TensorBoardLogger("../lightning_logs", name="hybrid_results")
     trainer = Trainer(fast_dev_run=False, gpus=1, max_epochs=num_epochs, logger=logger)
     trainer.fit(model)
     trainer.test(model)
