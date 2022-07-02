@@ -17,7 +17,7 @@ def count_features(data_csv: str):
 
 
 if __name__ == '__main__':
-    csv_name = 'data1.csv'
+    csv_name = 'data_baseline.csv'
     n_of_feats = count_features(csv_name)
     dataset = SerieAMatchesDataset(csv_file=csv_name)
     model = MLP(dataset=dataset, input_size=n_of_feats, learning_rate=learning_rate)
