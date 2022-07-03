@@ -10,14 +10,27 @@ from selenium.webdriver.chrome.options import Options
 
 chrome_options = Options()
 base_url = 'https://www.legaseriea.it/it/serie-a/'
-match_cols = ['season', 'round'] + \
-             ['date', 'time', 'referee', 'home_team', 'away_team', 'home_score', 'away_score'] + \
-             ['home_coach'] + \
-             ['home_player_' + str(i) for i in range(1, 12)] + \
-             ['home_substitute_' + str(i) for i in range(1, 13)] + \
-             ['away_coach'] + \
-             ['away_player_' + str(i) for i in range(1, 12)] + \
-             ['away_substitute_' + str(i) for i in range(1, 13)]
+
+match_report_cols = ['season', 'round', 'date', 'time', 'referee', 'home_team', 'away_team', 'home_score', 'away_score']
+
+match_stats_cols = ['home_gk_saves', 'away_gk_saves', 'home_penalties', 'away_penalties', 'home_shots', 'away_shots',
+                    'home_shots_on_target', 'away_shots_on_target', 'home_shots_off_target', 'away_shots_off_target',
+                    'home_shots_on_target_from_penalty_area', 'away_shots_on_target_from_penalty_area', 'home_fouls',
+                    'away_fouls', 'home_woodwork_hits', 'away_woodwork_hits', 'home_goal_chances', 'away_goal_chances',
+                    'home_assists', 'away_assists', 'home_offsides', 'away_offsides', 'home_corner_kicks',
+                    'away_corner_kicks', 'home_yel_cards', 'away_yel_cards', 'home_red_cards', 'away_red_cards',
+                    'home_crosses', 'away_crosses', 'home_long_throws', 'away_long_throws', 'home_attacks_from_center',
+                    'away_attacks_from_center', 'home_attacks_from_right', 'away_attacks_from_right',
+                    'home_attacks_from_left', 'away_attacks_from_left']
+
+match_teams_cols = ['home_coach'] + \
+                   ['home_player_' + str(i) for i in range(1, 12)] + \
+                   ['home_substitute_' + str(i) for i in range(1, 13)] + \
+                   ['away_coach'] + \
+                   ['away_player_' + str(i) for i in range(1, 12)] + \
+                   ['away_substitute_' + str(i) for i in range(1, 13)]
+
+match_cols = match_report_cols + match_stats_cols + match_teams_cols
 
 
 def scrape_round_matches_urls(season, round):
@@ -132,16 +145,21 @@ def scrape_match_away_team_lineup(bs: BeautifulSoup) -> list[str]:
 
 def scrape_match_stats(bs: BeautifulSoup) -> list[str]:
     stats_parent_div = bs.find(class_='numeridelmatch')
+    stats = ['Parate', 'Rigori', 'Tiri Totali', 'Tiri in porta', 'Tiri fuori', 'Tiri in porta da area',
+             'Falli commessi', 'Pali', 'Occasioni da gol', 'Assist Totali', 'Fuorigioco', 'Corner', 'Ammonizioni',
+             'Espulsioni', 'Cross',
+             'Lanci lunghi', 'Attacchi centrali', 'Attacchi a destra', 'Attacchi a sinistra']
     dict = {}
     for row in stats_parent_div.findChildren(class_='riga'):
         dict[row.findChild(class_='valoretitolo').getText()] = \
             [row.findChild(class_='valoresx').getText(), row.findChild(class_='valoredx').getText()]
-    stats = dict['Parate'] + dict['Rigori'] + dict['Tiri Totali'] + dict['Tiri in porta'] + \
-            dict['Tiri fuori'] + dict['Tiri in porta da area'] + dict['Falli commessi'] + \
-            dict['Pali'] + dict['Assist Totali'] + dict['Fuorigioco'] + dict['Corner'] + \
-            dict['Ammonizioni'] + dict['Espulsioni'] + dict['Cross'] + dict['Lanci lunghi'] + \
-            dict['Attacchi centrali'] + dict['Attacchi a destra'] + dict['Attacchi a sinistra']
-    return stats
+    values = []
+    for stat in stats:
+        if stat in dict:
+            values += dict[stat]
+        else:
+            values += ['-', '-']
+    return values
 
 
 def scrape_match_team_lineups(bs: BeautifulSoup) -> list[str]:
@@ -176,7 +194,7 @@ def scrape():
     exp_num_of_matches_per_round = 10
     print(f'Will scrape data from season {seasons[0]} to season {seasons[-1]}')
     rounds = np.arange(1, 39, 1)
-    csv = open('raw.csv', 'a', newline='')
+    csv = open('raw1.csv', 'a', newline='')
     write_obj = writer(csv)
     write_obj.writerow(match_cols)
     for season in seasons:
