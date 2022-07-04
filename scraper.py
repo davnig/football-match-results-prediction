@@ -8,29 +8,10 @@ import numpy as np
 from bs4 import BeautifulSoup
 from selenium.webdriver.chrome.options import Options
 
+from utils import match_cols
+
 chrome_options = Options()
 base_url = 'https://www.legaseriea.it/it/serie-a/'
-
-match_report_cols = ['season', 'round', 'date', 'time', 'referee', 'home_team', 'away_team', 'home_score', 'away_score']
-
-match_stats_cols = ['home_gk_saves', 'away_gk_saves', 'home_penalties', 'away_penalties', 'home_shots', 'away_shots',
-                    'home_shots_on_target', 'away_shots_on_target', 'home_shots_off_target', 'away_shots_off_target',
-                    'home_shots_on_target_from_penalty_area', 'away_shots_on_target_from_penalty_area', 'home_fouls',
-                    'away_fouls', 'home_woodwork_hits', 'away_woodwork_hits', 'home_goal_chances', 'away_goal_chances',
-                    'home_assists', 'away_assists', 'home_offsides', 'away_offsides', 'home_corner_kicks',
-                    'away_corner_kicks', 'home_yel_cards', 'away_yel_cards', 'home_red_cards', 'away_red_cards',
-                    'home_crosses', 'away_crosses', 'home_long_throws', 'away_long_throws', 'home_attacks_from_center',
-                    'away_attacks_from_center', 'home_attacks_from_right', 'away_attacks_from_right',
-                    'home_attacks_from_left', 'away_attacks_from_left']
-
-match_teams_cols = ['home_coach'] + \
-                   ['home_player_' + str(i) for i in range(1, 12)] + \
-                   ['home_substitute_' + str(i) for i in range(1, 13)] + \
-                   ['away_coach'] + \
-                   ['away_player_' + str(i) for i in range(1, 12)] + \
-                   ['away_substitute_' + str(i) for i in range(1, 13)]
-
-match_cols = match_report_cols + match_stats_cols + match_teams_cols
 
 
 def scrape_round_matches_urls(season, round):
