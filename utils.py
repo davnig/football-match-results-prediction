@@ -3,6 +3,8 @@ import torch
 
 from _MatchNotFoundException import MatchNotFoundException
 
+LINE_FLUSH = '\r\033[K'
+
 match_report_cols = ['season', 'round', 'date', 'time', 'referee', 'home_team', 'away_team', 'home_score', 'away_score']
 
 match_stats_cols = ['home_gk_saves', 'away_gk_saves', 'home_penalties', 'away_penalties', 'home_shots', 'away_shots',
@@ -102,17 +104,10 @@ def get_last_five_matches_played_by_team(df: pd.DataFrame, target_match_index: i
 
 def transform_historic_data_long_to_wide(long_df: pd.DataFrame, target_home_or_away: str, target_idx: int,
                                          hist_len: int) -> pd.DataFrame:
-    # Init columns for n historic matches
-    historic_cols = [f'{target_home_or_away}_hist_{i}_{colName}' for i in range(1, hist_len + 1) for colName in
-                     match_cols]
-    # Init empty DataFrame with those columns and specific index
-    result = pd.DataFrame(columns=historic_cols, index=[target_idx])
-    # Copy values into DataFrame
-    for i in range(len(long_df)):
-        source_match = long_df[i]
-        for colName, colValue in source_match.iteritems():
-            result.at[target_idx, f'{target_home_or_away}_hist_{i + 1}_{colName}'] = colValue
-    return result
+    cols = [f'hist_{target_home_or_away}_{name}_{num // len(long_df.columns)}' for num, name in
+            enumerate(long_df.columns.tolist() * len(long_df))]
+    wide_df = pd.DataFrame(long_df.values.reshape(1, -1), columns=cols, index=[target_idx])
+    return wide_df
 
 
 def get_last_n_matches_played_by_home_and_away_teams(df: pd.DataFrame, season: int, round: int, home_team: str,
@@ -132,6 +127,13 @@ def get_last_n_matches_played_by_home_and_away_teams(df: pd.DataFrame, season: i
                     source = pd.concat([source, padding], ignore_index=True)
             return source
 
+        def fill_with_empty(source: pd.DataFrame, cols):
+            if len(source) < 5:
+                empty = [['-' for _ in range(len(cols))]]
+                for _ in range(5 - len(source)):
+                    source = pd.concat([source, pd.DataFrame(empty, columns=cols)], ignore_index=True)
+                return source
+
         def get_match_by_team_season_round(df: pd.DataFrame, team: str, season: int, round: int) -> pd.DataFrame:
             """Get the match played by the given team in the given season and round.
             If the team has not played any match in that round, an empty dataframe is returned."""
@@ -141,10 +143,12 @@ def get_last_n_matches_played_by_home_and_away_teams(df: pd.DataFrame, season: i
         current_round, current_season = round, season
         result = pd.DataFrame()
         while True:
-            if round <= 1:
+            if current_round <= 1:
                 if result.empty:
-                    raise MatchNotFoundException
-                return fill_with_padding(result)
+                    return pd.DataFrame(data=[['-' for _ in range(len(df.columns))] for _ in range(5)],
+                                        columns=df.columns.tolist())
+                    # raise MatchNotFoundException
+                return fill_with_empty(result, df.columns)
             current_round = current_round - 1
             historical_match_at_current_round = get_match_by_team_season_round(df, team, current_season, current_round)
             if not historical_match_at_current_round.empty:
@@ -166,9 +170,14 @@ def add_historic_data_of_last_n_matches_as_features(df: pd.DataFrame, history_le
     :param df: source of data
     :return: a new dataframe
     """
+    print('Generating historic features as features...')
     new_df = pd.DataFrame()
+    copy_df = df[['season', 'round', 'home_team', 'away_team']]
     # for each row in dataframe
-    for (index, season, round, home_team, away_team) in df.itertuples(name=None):
+    for (index, season, round, home_team, away_team) in copy_df.itertuples(name=None):
+        percentage = int((index + 1) * 100.0 / len(copy_df))
+        # percentage = '{:0.2f}'.format(percentage)
+        print(f'{LINE_FLUSH}season: {season} round: {round} {index + 1}/{len(copy_df)} {percentage}%', end=' ')
         home_historic_df, away_historic_df = get_last_n_matches_played_by_home_and_away_teams(df, season,
                                                                                               round,
                                                                                               home_team,
@@ -179,3 +188,37 @@ def add_historic_data_of_last_n_matches_as_features(df: pd.DataFrame, history_le
         new_row_as_df = pd.concat([df.iloc[[index]], wide_home_historic_df, wide_away_historic_df], axis=1)
         new_df = pd.concat([new_df, new_row_as_df], axis=0)
     return new_df
+
+# def generate_historic_data_of_last_n_matches_as_list(df: pd.DataFrame, history_len=5) -> pd.DataFrame:
+#     """
+#     Construct and return a nested list containing all the historic data for every match in df.
+#     :param df: source of data
+#     :return: a nested list
+#     """
+#     print('Generating historic features as list...')
+#     result = []
+#     copy_df = df[['season', 'round', 'home_team', 'away_team']]
+#     # for each row in dataframe
+#     for (index, season, round, home_team, away_team) in copy_df.itertuples(name=None):
+#         percentage = int((index + 1) * 100.0 / len(copy_df))
+#         if round <= 5:
+#             continue
+#         # percentage = '{:0.2f}'.format(percentage)
+#         print(f'{LINE_FLUSH}season: {season} round: {round} {index + 1}/{len(copy_df)} {percentage}%', end=' ')
+#         home_historic_df, away_historic_df = get_last_n_matches_played_by_home_and_away_teams(df, season,
+#                                                                                               round,
+#                                                                                               home_team,
+#                                                                                               away_team,
+#                                                                                               history_len)
+#         home_historic_df = home_historic_df.reset_index()
+#         away_historic_df = away_historic_df.reset_index()
+#         home_historic_df = home_historic_df.drop(columns='index', axis=1)
+#         away_historic_df = away_historic_df.drop(columns='index', axis=1)
+#         home_renamed = home_historic_df.rename(columns=lambda x: f'H_{x}', inplace=False)
+#         away_renamed = away_historic_df.rename(columns=lambda x: f'A_{x}', inplace=False)
+#         series_df = pd.concat([home_renamed, away_renamed.set_index(home_renamed.index)], axis=1)
+#         series_df.insert(loc=0, column='index', value=index)
+#
+#
+#         # new_df = pd.concat([new_df, new_row_as_df], axis=0)
+#     return new_df

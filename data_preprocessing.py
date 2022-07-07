@@ -2,6 +2,8 @@ import pandas as pd
 
 from MatchResult import MatchResult
 
+INPUT_CSV_NAME = 'raw.csv'
+OUTPUT_CSV_NAME = 'data.csv'
 # add player names as features
 INCLUDE_PLAYERS = True
 
@@ -10,14 +12,14 @@ def data_fixing(df: pd.DataFrame):
     """Through manual inspection of the raw dataset, several matches with issues or inconsistent data were detected.
     Let’s fix them. We will use another source of Serie A matches to compare with."""
 
-    def fix_issue_1(df: pd.DataFrame):
+    def fix_issue_1(df: pd.DataFrame) -> pd.DataFrame:
         """In several matches played by Lazio during the season 2007-08, the goalkeeper Marco Ballotta is missing in
         the lineup, resulting in data shifting and NULL values in column away_substitute_12."""
 
         def fix_issue_1_home(df: pd.DataFrame, missing_goalkeeper: str):
             """Fix matches where LAZIO is the home team"""
             to_fix_mask_home = (df['away_substitute_12'].isnull()) & (df['home_team'] == 'LAZIO')
-            for index, row in df[to_fix_mask_home].iterrows():
+            for index in df[to_fix_mask_home].index:
                 # shift substitutes
                 df.loc[index, 'home_substitute_1':'home_substitute_7'] = \
                     df.loc[index, 'home_player_11':'home_substitute_6'].values
@@ -35,7 +37,7 @@ def data_fixing(df: pd.DataFrame):
         def fix_issue_1_away(df: pd.DataFrame, missing_goalkeeper: str):
             """Fix matches where LAZIO is the away team"""
             to_fix_mask_away = (df['away_substitute_12'].isnull()) & (df['away_team'] == 'LAZIO')
-            for index, row in df[to_fix_mask_away].iterrows():
+            for index in df[to_fix_mask_away].index:
                 # shift substitutes
                 df.loc[index, 'away_substitute_1':'away_substitute_7'] = \
                     df.loc[index, 'away_player_11':'away_substitute_6'].values
@@ -59,7 +61,7 @@ def data_fixing(df: pd.DataFrame):
             print('issue #1 NOT FIXED')
         return df
 
-    def fix_issue_2(df: pd.DataFrame):
+    def fix_issue_2(df: pd.DataFrame) -> pd.DataFrame:
         """In round 37, season 2005-06, MESSINA-EMPOLI was suspended at 89’ with score 1-2.
         Then winner of the game was decided to be EMPOLI with a ‘by forfeit’ victory, i.e. 0-3 for EMPOLI.
         We keep the on-pitch score with all the data as the game was about to end when it was suspended."""
@@ -78,7 +80,7 @@ def data_fixing(df: pd.DataFrame):
             print('issue #2 NOT FIXED')
         return df
 
-    def fix_issue_3(df: pd.DataFrame):
+    def fix_issue_3(df: pd.DataFrame) -> pd.DataFrame:
         """In round 4, season 2012-13, CAGLIARI-ROMA was not played and a victory by forfeit was given to ROMA.
         We will discard this match as it does not bring information."""
         to_fix_mask = (df['date'] == '-') & (df['round'] == 4) & (df['season'] == '2012-13')
@@ -264,9 +266,9 @@ def data_encoding(df: pd.DataFrame):
 
 
 if __name__ == '__main__':
-    df = pd.read_csv('raw.csv')
+    df = pd.read_csv(INPUT_CSV_NAME)
     df = data_fixing(df)
     df = data_manipulation(df)
     df = data_encoding(df)
-    df.to_csv("data1.csv", index=False)
+    df.to_csv(OUTPUT_CSV_NAME, index=False)
     print(f'DONE. Final shape: {df.shape}')
