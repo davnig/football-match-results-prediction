@@ -5,26 +5,29 @@ from _MatchNotFoundException import MatchNotFoundException
 
 LINE_FLUSH = '\r\033[K'
 
-match_report_cols = ['season', 'round', 'date', 'time', 'referee', 'home_team', 'away_team', 'home_score', 'away_score']
+MATCH_REPORT_COLUMNS = ['season', 'round', 'date', 'time', 'referee', 'home_team', 'away_team', 'home_score',
+                        'away_score']
 
-match_stats_cols = ['home_gk_saves', 'away_gk_saves', 'home_penalties', 'away_penalties', 'home_shots', 'away_shots',
-                    'home_shots_on_target', 'away_shots_on_target', 'home_shots_off_target', 'away_shots_off_target',
-                    'home_shots_on_target_from_penalty_area', 'away_shots_on_target_from_penalty_area', 'home_fouls',
-                    'away_fouls', 'home_woodwork_hits', 'away_woodwork_hits', 'home_goal_chances', 'away_goal_chances',
-                    'home_assists', 'away_assists', 'home_offsides', 'away_offsides', 'home_corner_kicks',
-                    'away_corner_kicks', 'home_yel_cards', 'away_yel_cards', 'home_red_cards', 'away_red_cards',
-                    'home_crosses', 'away_crosses', 'home_long_throws', 'away_long_throws', 'home_attacks_from_center',
-                    'away_attacks_from_center', 'home_attacks_from_right', 'away_attacks_from_right',
-                    'home_attacks_from_left', 'away_attacks_from_left']
+MATCH_STATS_COLUMNS = ['home_gk_saves', 'away_gk_saves', 'home_penalties', 'away_penalties', 'home_shots', 'away_shots',
+                       'home_shots_on_target', 'away_shots_on_target', 'home_shots_off_target', 'away_shots_off_target',
+                       'home_shots_on_target_from_penalty_area', 'away_shots_on_target_from_penalty_area', 'home_fouls',
+                       'away_fouls', 'home_woodwork_hits', 'away_woodwork_hits', 'home_goal_chances',
+                       'away_goal_chances',
+                       'home_assists', 'away_assists', 'home_offsides', 'away_offsides', 'home_corner_kicks',
+                       'away_corner_kicks', 'home_yel_cards', 'away_yel_cards', 'home_red_cards', 'away_red_cards',
+                       'home_crosses', 'away_crosses', 'home_long_throws', 'away_long_throws',
+                       'home_attacks_from_center',
+                       'away_attacks_from_center', 'home_attacks_from_right', 'away_attacks_from_right',
+                       'home_attacks_from_left', 'away_attacks_from_left']
 
-match_teams_cols = ['home_coach'] + \
-                   ['home_player_' + str(i) for i in range(1, 12)] + \
-                   ['home_substitute_' + str(i) for i in range(1, 13)] + \
-                   ['away_coach'] + \
-                   ['away_player_' + str(i) for i in range(1, 12)] + \
-                   ['away_substitute_' + str(i) for i in range(1, 13)]
+MATCH_TEAMS_COLUMNS = ['home_coach'] + \
+                      ['home_player_' + str(i) for i in range(1, 12)] + \
+                      ['home_substitute_' + str(i) for i in range(1, 13)] + \
+                      ['away_coach'] + \
+                      ['away_player_' + str(i) for i in range(1, 12)] + \
+                      ['away_substitute_' + str(i) for i in range(1, 13)]
 
-match_cols = match_report_cols + match_stats_cols + match_teams_cols
+MATCH_COLUMNS = MATCH_REPORT_COLUMNS + MATCH_STATS_COLUMNS + MATCH_TEAMS_COLUMNS
 
 """Utility methods"""
 
@@ -187,38 +190,5 @@ def add_historic_data_of_last_n_matches_as_features(df: pd.DataFrame, history_le
         wide_away_historic_df = transform_historic_data_long_to_wide(away_historic_df, 'away', index, history_len)
         new_row_as_df = pd.concat([df.iloc[[index]], wide_home_historic_df, wide_away_historic_df], axis=1)
         new_df = pd.concat([new_df, new_row_as_df], axis=0)
+    print('\n')
     return new_df
-
-# def generate_historic_data_of_last_n_matches_as_list(df: pd.DataFrame, history_len=5) -> pd.DataFrame:
-#     """
-#     Construct and return a nested list containing all the historic data for every match in df.
-#     :param df: source of data
-#     :return: a nested list
-#     """
-#     print('Generating historic features as list...')
-#     result = []
-#     copy_df = df[['season', 'round', 'home_team', 'away_team']]
-#     # for each row in dataframe
-#     for (index, season, round, home_team, away_team) in copy_df.itertuples(name=None):
-#         percentage = int((index + 1) * 100.0 / len(copy_df))
-#         if round <= 5:
-#             continue
-#         # percentage = '{:0.2f}'.format(percentage)
-#         print(f'{LINE_FLUSH}season: {season} round: {round} {index + 1}/{len(copy_df)} {percentage}%', end=' ')
-#         home_historic_df, away_historic_df = get_last_n_matches_played_by_home_and_away_teams(df, season,
-#                                                                                               round,
-#                                                                                               home_team,
-#                                                                                               away_team,
-#                                                                                               history_len)
-#         home_historic_df = home_historic_df.reset_index()
-#         away_historic_df = away_historic_df.reset_index()
-#         home_historic_df = home_historic_df.drop(columns='index', axis=1)
-#         away_historic_df = away_historic_df.drop(columns='index', axis=1)
-#         home_renamed = home_historic_df.rename(columns=lambda x: f'H_{x}', inplace=False)
-#         away_renamed = away_historic_df.rename(columns=lambda x: f'A_{x}', inplace=False)
-#         series_df = pd.concat([home_renamed, away_renamed.set_index(home_renamed.index)], axis=1)
-#         series_df.insert(loc=0, column='index', value=index)
-#
-#
-#         # new_df = pd.concat([new_df, new_row_as_df], axis=0)
-#     return new_df

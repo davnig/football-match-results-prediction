@@ -8,8 +8,9 @@ import numpy as np
 from bs4 import BeautifulSoup
 from selenium.webdriver.chrome.options import Options
 
-from utils import match_cols
+from utils import MATCH_COLUMNS
 
+CSV_NAME = 'raw.csv'
 chrome_options = Options()
 base_url = 'https://www.legaseriea.it/it/serie-a/'
 
@@ -175,9 +176,9 @@ def scrape():
     exp_num_of_matches_per_round = 10
     print(f'Will scrape data from season {seasons[0]} to season {seasons[-1]}')
     rounds = np.arange(1, 39, 1)
-    csv = open('raw1.csv', 'a', newline='')
+    csv = open(CSV_NAME, 'a', newline='')
     write_obj = writer(csv)
-    write_obj.writerow(match_cols)
+    write_obj.writerow(MATCH_COLUMNS)
     for season in seasons:
         for round in rounds:
             print("Season {} Round {}:".format(season, round))
@@ -192,7 +193,7 @@ def scrape():
             if len(matches_uris) < exp_num_of_matches_per_round:
                 print(f'WARNING: Only {len(matches_uris)} matches were found in round {round} of season {season}')
                 for _ in range(exp_num_of_matches_per_round - len(matches_uris)):
-                    write_obj.writerow([season, round] + ['-' for _ in range(len(match_cols) - 2)])
+                    write_obj.writerow([season, round] + ['-' for _ in range(len(MATCH_COLUMNS) - 2)])
     csv.close()
 
 
