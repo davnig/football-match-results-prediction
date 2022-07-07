@@ -52,8 +52,8 @@ def data_manipulation(df: pd.DataFrame):
                          suffix='\d+')
     df = df.reset_index() \
         .sort_values(by=['id', 'time'], ascending=[True, True]) \
-        .reset_index() \
-        .drop(columns=['index', 'id', 'time'])
+        .reset_index(drop=True) \
+        .drop(columns=['id', 'time'])
     print('===> Phase 2: DONE ')
     return df
 
@@ -65,6 +65,8 @@ def data_encoding(df: pd.DataFrame):
     # fill missing stats values with 0
     for col in [f'hist_{home_away}_{col}' for home_away in ['home', 'away'] for col in MATCH_STATS_COLUMNS]:
         df[col].replace(['-'], 0, inplace=True)
+    # delete group of 5 match having a NaN value
+    df = df.drop(df.iloc[11550:11555, :].index).reset_index(drop=True)
     # force integer type for all columns except 'result'
     df.loc[:, 'hist_home_season':'hist_away_hour'] = df.loc[:, 'hist_home_season':'hist_away_hour'].astype(int)
     # label encode 'year'

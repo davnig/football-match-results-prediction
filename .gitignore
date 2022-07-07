@@ -1,3 +1,4 @@
 /*.csv
 /baseline/*.csv
 /hybrid/*.csv
+/rnn/*.csv
