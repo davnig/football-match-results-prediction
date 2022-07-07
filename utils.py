@@ -4,10 +4,8 @@ import torch
 from _MatchNotFoundException import MatchNotFoundException
 
 LINE_FLUSH = '\r\033[K'
-
 MATCH_REPORT_COLUMNS = ['season', 'round', 'date', 'time', 'referee', 'home_team', 'away_team', 'home_score',
                         'away_score']
-
 MATCH_STATS_COLUMNS = ['home_gk_saves', 'away_gk_saves', 'home_penalties', 'away_penalties', 'home_shots', 'away_shots',
                        'home_shots_on_target', 'away_shots_on_target', 'home_shots_off_target', 'away_shots_off_target',
                        'home_shots_on_target_from_penalty_area', 'away_shots_on_target_from_penalty_area', 'home_fouls',
@@ -19,15 +17,14 @@ MATCH_STATS_COLUMNS = ['home_gk_saves', 'away_gk_saves', 'home_penalties', 'away
                        'home_attacks_from_center',
                        'away_attacks_from_center', 'home_attacks_from_right', 'away_attacks_from_right',
                        'home_attacks_from_left', 'away_attacks_from_left']
-
 MATCH_TEAMS_COLUMNS = ['home_coach'] + \
                       ['home_player_' + str(i) for i in range(1, 12)] + \
                       ['home_substitute_' + str(i) for i in range(1, 13)] + \
                       ['away_coach'] + \
                       ['away_player_' + str(i) for i in range(1, 12)] + \
                       ['away_substitute_' + str(i) for i in range(1, 13)]
-
 MATCH_COLUMNS = MATCH_REPORT_COLUMNS + MATCH_STATS_COLUMNS + MATCH_TEAMS_COLUMNS
+HISTORY_LEN = 5
 
 """Utility methods"""
 
@@ -45,6 +42,13 @@ def accuracy(y, y_hat):
     _, target_classes = torch.topk(y, 1)
     correct = (pred_classes == target_classes).sum(dim=0)
     return (correct / y.shape[0]).item()
+
+
+def count_features(data_csv: str):
+    df = pd.read_csv(data_csv, nrows=1)
+    n_of_features = len(df.columns)
+    del df
+    return n_of_features
 
 
 """Historic matches retrieval"""
@@ -114,7 +118,7 @@ def transform_historic_data_long_to_wide(long_df: pd.DataFrame, target_home_or_a
 
 
 def get_last_n_matches_played_by_home_and_away_teams(df: pd.DataFrame, season: int, round: int, home_team: str,
-                                                     away_team: str, history_len=5):
+                                                     away_team: str):
     """Retrieve from df the historical data for the given home and away teams prior to the given round in season."""
 
     def get_last_n_matches_played_by_team_before_round_in_season(df: pd.DataFrame, team: str, season: int,
@@ -124,16 +128,16 @@ def get_last_n_matches_played_by_home_and_away_teams(df: pd.DataFrame, season: i
         is applied to ensure a result size of n."""
 
         def fill_with_padding(source: pd.DataFrame):
-            if len(source) < 5:
+            if len(source) < HISTORY_LEN:
                 padding = source.tail(1)
-                for i in range(5 - len(source)):
+                for i in range(HISTORY_LEN - len(source)):
                     source = pd.concat([source, padding], ignore_index=True)
             return source
 
         def fill_with_empty(source: pd.DataFrame, cols):
-            if len(source) < 5:
+            if len(source) < HISTORY_LEN:
                 empty = [['-' for _ in range(len(cols))]]
-                for _ in range(5 - len(source)):
+                for _ in range(HISTORY_LEN - len(source)):
                     source = pd.concat([source, pd.DataFrame(empty, columns=cols)], ignore_index=True)
                 return source
 
@@ -148,7 +152,7 @@ def get_last_n_matches_played_by_home_and_away_teams(df: pd.DataFrame, season: i
         while True:
             if current_round <= 1:
                 if result.empty:
-                    return pd.DataFrame(data=[['-' for _ in range(len(df.columns))] for _ in range(5)],
+                    return pd.DataFrame(data=[['-' for _ in range(len(df.columns))] for _ in range(HISTORY_LEN)],
                                         columns=df.columns.tolist())
                     # raise MatchNotFoundException
                 return fill_with_empty(result, df.columns)
@@ -159,14 +163,12 @@ def get_last_n_matches_played_by_home_and_away_teams(df: pd.DataFrame, season: i
                 if len(result) == n:
                     return result
 
-    last_n_games_home = get_last_n_matches_played_by_team_before_round_in_season(
-        df, home_team, season, round, history_len)
-    last_n_games_away = get_last_n_matches_played_by_team_before_round_in_season(
-        df, away_team, season, round, history_len)
+    last_n_games_home = get_last_n_matches_played_by_team_before_round_in_season(df, home_team, season, round)
+    last_n_games_away = get_last_n_matches_played_by_team_before_round_in_season(df, away_team, season, round)
     return last_n_games_home, last_n_games_away
 
 
-def add_historic_data_of_last_n_matches_as_features(df: pd.DataFrame, history_len=5) -> pd.DataFrame:
+def add_historic_data_of_last_n_matches_as_features(df: pd.DataFrame) -> pd.DataFrame:
     """
     Construct and return a new dataframe adding information about the last five matches played by home and away team of all
     matches in df.
@@ -184,10 +186,9 @@ def add_historic_data_of_last_n_matches_as_features(df: pd.DataFrame, history_le
         home_historic_df, away_historic_df = get_last_n_matches_played_by_home_and_away_teams(df, season,
                                                                                               round,
                                                                                               home_team,
-                                                                                              away_team,
-                                                                                              history_len)
-        wide_home_historic_df = transform_historic_data_long_to_wide(home_historic_df, 'home', index, history_len)
-        wide_away_historic_df = transform_historic_data_long_to_wide(away_historic_df, 'away', index, history_len)
+                                                                                              away_team)
+        wide_home_historic_df = transform_historic_data_long_to_wide(home_historic_df, 'home', index)
+        wide_away_historic_df = transform_historic_data_long_to_wide(away_historic_df, 'away', index)
         new_row_as_df = pd.concat([df.iloc[[index]], wide_home_historic_df, wide_away_historic_df], axis=1)
         new_df = pd.concat([new_df, new_row_as_df], axis=0)
     print('\n')

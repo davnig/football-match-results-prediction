@@ -1,10 +1,12 @@
+import pytorch_lightning as pl
 import torch
 from torch import nn
 
 
-class HybridRNN(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size):
-        super(HybridRNN, self).__init__()
+class RNN(pl.LightningModule):
+    def __init__(self, dataset, input_size, hidden_size, output_size):
+        super(RNN, self).__init__()
+        self.dataset = dataset
         self.hidden_size = hidden_size
         self.output_size = output_size
         self.linear = nn.Linear(input_size + hidden_size, hidden_size)
