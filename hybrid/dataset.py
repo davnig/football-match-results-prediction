@@ -5,16 +5,19 @@ import torch
 from torch.utils.data import Dataset
 
 from _MatchNotFoundException import MatchNotFoundException
-from utils import scale_idx
+from utils import scale_idx, HISTORY_LEN, MATCH_STATS_COLUMNS
 
 
-class SerieAMatchesWithHistoryDataset(Dataset):
-    def __init__(self, csv_file, history_len=5):
-        self.dataframe = pd.read_csv(csv_file)
-        self.history_len = history_len
+class HybridSerieADataset(Dataset):
+    def __init__(self, csv_file):
+        df = pd.read_csv(csv_file)
+        data = df.values.reshape(-1, HISTORY_LEN + 1, df.shape[1])
+        del df
+        self.train_x = data[:, :, :-3]
+        self.train_y = data[:, :, -3:]
 
     def __len__(self) -> int:
-        return len(self.dataframe)
+        return len(self.train_x)
 
     def __getitem__(self, idx):
         def show_error(index, error_x, error_x_historical_home, error_x_historical_away, error_y):
@@ -35,6 +38,16 @@ class SerieAMatchesWithHistoryDataset(Dataset):
             x_historical_away_tensor = torch.tensor(x_historical_away.values)
             y_tensor = torch.tensor(y)
             return x_tensor, x_historical_home_tensor, x_historical_away_tensor, y_tensor
+
+        # x_mlp data starts from column at position `len(MATCH_STATS_COLUMNS)+4`.
+        # Before that we have match statistics and scores, which must not be available to MLP model
+        start_column_idx_mlp = len(MATCH_STATS_COLUMNS) + 4
+        # x_mlp data takes hals of the available columns
+        end_column_idx_mlp = self.train_x.shape[2] / 2
+        x_mlp = self.train_x[idx, :1, start_column_idx_mlp:end_column_idx_mlp]
+        x_rnn = self.train_x[idx, 1:6]
+        # remove scores and stats from x
+        y = self.train_y[idx, 5]
 
         idx = self.scale_min_idx(idx)
         x = self.dataframe.iloc[[idx]]  # df

@@ -2,8 +2,7 @@ import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 
 from data_encoding import encode_seasons, encode_players, remove_lineup, encode_remaining_feats, \
-    shift_home_team_cols_to_end, shift_away_team_cols_to_end, shift_referee_cols_to_end, shift_player_cols_to_end, \
-    remove_teams, remove_referees, shift_result_cols_to_end
+    remove_teams, remove_referees, shift_result_cols_to_end, shift_stat_cols_to_start, shift_score_cols_to_start
 from data_fixing import fix_issue_1, fix_issue_2, fix_issue_3
 from data_manipulation import convert_date_str_to_datetime, sort_by_date_column, cast_str_values_to_int, \
     add_result_column, explode_datetime_values, drop_date_cols
@@ -14,6 +13,49 @@ OUTPUT_CSV_NAME = 'data_hybrid.csv'
 INCLUDE_LINEUP = True
 INCLUDE_TEAMS = True
 INCLUDE_REFEREES = True
+
+""" 
+The goal of this pre-processing step is to clean the raw data and build a time series for every source match 
+as illustrated below:
+
+STARTING DATAFRAME:
+-----------------------------
+| idx | features |  target  |
+-----------------------------
+|  0  | MATCH_0  | result_0 |
+-----------------------------
+|  1  | MATCH_1  | result_1 |
+-----------------------------
+|  2  | MATCH_2  | result_2 |
+-----------------------------
+
+FINAL DATAFRAME:
+------------------------------------------------------------------------
+| idx | old_idx |                  features                 |  target  |
+------------------------------------------------------------------------
+|  0  |    0    | MATCH_0             | MATCH_0             | result_0 |
+|  1  |         | MATCH_0 home_hist_1 | MATCH_0 away_hist_1 | result_0 |
+|  2  |         | MATCH_0 home_hist_2 | MATCH_0 away_hist_2 | result_0 |
+|  3  |         | MATCH_0 home_hist_3 | MATCH_0 away_hist_3 | result_0 |
+|  4  |         | MATCH_0 home_hist_4 | MATCH_0 away_hist_4 | result_0 |
+|  5  |         | MATCH_0 home_hist_5 | MATCH_0 away_hist_5 | result_0 |
+------------------------------------------------------------------------
+|  6  |    1    | MATCH_1             | MATCH_1             | result_1 |
+|  7  |         | MATCH_1 home_hist_1 | MATCH_1 away_hist_1 | result_1 |
+|  8  |         | MATCH_1 home_hist_2 | MATCH_1 away_hist_2 | result_1 |
+|  9  |         | MATCH_1 home_hist_3 | MATCH_1 away_hist_3 | result_1 |
+|  10 |         | MATCH_1 home_hist_4 | MATCH_1 away_hist_4 | result_1 |
+|  11 |         | MATCH_1 home_hist_5 | MATCH_1 away_hist_5 | result_1 |
+------------------------------------------------------------------------
+
+where:
+- 'MATCH_n' represent the data of a single match
+- 'result_n' is the outcome we want to predict
+- 'MATCH_N home_hist_n' represent the data of the n-th previous game played by the home team of MATCH_n
+- 'MATCH_N away_hist_n' represent the data of the n-th previous game played by the away team of MATCH_n
+
+This structure allows for fast retrieval of football match time series.
+"""
 
 
 def data_fixing(df: pd.DataFrame):
@@ -29,6 +71,7 @@ def data_fixing(df: pd.DataFrame):
 
 def data_manipulation(df: pd.DataFrame):
     def convert_wide_to_long(df: pd.DataFrame) -> pd.DataFrame:
+        new_columns = df.columns.tolist()
         df.insert(loc=0, column='id', value=df.index)
         # delete all matches not having a complete history of 5 games
         df = df.drop(df[df['home_season_5'] == '-'].index)
@@ -80,7 +123,6 @@ def data_manipulation(df: pd.DataFrame):
     df = add_result_column(df)
     df = explode_datetime_values(df)
     df = drop_date_cols(df)
-    new_columns = df.columns.tolist()
     df = add_historic_data_of_last_n_matches_as_features(df)
     df = convert_wide_to_long(df)
     # fill missing stats values with 0
@@ -104,11 +146,10 @@ def data_encoding(df: pd.DataFrame):
     df['home_year'] = le.fit_transform(df['home_year'])
     df['away_year'] = le.fit_transform(df['away_year'])
     df = encode_remaining_feats(df)
-    df = shift_home_team_cols_to_end(df)
-    df = shift_away_team_cols_to_end(df)
-    df = shift_referee_cols_to_end(df)
-    df = shift_player_cols_to_end(df)
+    df = shift_stat_cols_to_start(df)
+    df = shift_score_cols_to_start(df)
     df = shift_result_cols_to_end(df)
+    # todo: home and away data are not sequential
     print('===> Phase 3: DONE ')
     return df
 

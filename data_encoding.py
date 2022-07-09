@@ -1,6 +1,6 @@
 import pandas as pd
 
-from utils import LINE_FLUSH
+from utils import LINE_FLUSH, MATCH_STATS_COLUMNS
 
 
 def get_column_names_containing_str(df: pd.DataFrame, substring: str) -> list[str]:
@@ -66,13 +66,13 @@ def remove_teams(df: pd.DataFrame) -> pd.DataFrame:
     return df.drop(df.filter(regex='team', axis=1).columns, axis=1)
 
 
-def encode_remaining_feats(df: pd.DataFrame):
+def encode_remaining_feats(df: pd.DataFrame) -> pd.DataFrame:
     df = pd.get_dummies(df, dtype=int)
     print(f'Remaining feats encoded. Shape: {df.shape}')
     return df
 
 
-def shift_home_team_cols_to_end(df: pd.DataFrame):
+def shift_home_team_cols_to_end(df: pd.DataFrame) -> pd.DataFrame:
     cols_to_shift = df.filter(regex='home_team', axis=1).columns
     home_teams_df = df[cols_to_shift].copy()
     df = df.drop(cols_to_shift, axis=1)
@@ -80,7 +80,7 @@ def shift_home_team_cols_to_end(df: pd.DataFrame):
     return df
 
 
-def shift_away_team_cols_to_end(df: pd.DataFrame):
+def shift_away_team_cols_to_end(df: pd.DataFrame) -> pd.DataFrame:
     cols_to_shift = df.filter(regex='away_team', axis=1).columns
     away_teams_df = df[cols_to_shift].copy()
     df = df.drop(cols_to_shift, axis=1)
@@ -88,7 +88,7 @@ def shift_away_team_cols_to_end(df: pd.DataFrame):
     return df
 
 
-def shift_referee_cols_to_end(df: pd.DataFrame):
+def shift_referee_cols_to_end(df: pd.DataFrame) -> pd.DataFrame:
     cols_to_shift = df.filter(regex='referee', axis=1).columns
     referees_df = df[cols_to_shift].copy()
     df = df.drop(cols_to_shift, axis=1)
@@ -96,7 +96,7 @@ def shift_referee_cols_to_end(df: pd.DataFrame):
     return df
 
 
-def shift_player_cols_to_end(df: pd.DataFrame):
+def shift_player_cols_to_end(df: pd.DataFrame) -> pd.DataFrame:
     cols_to_shift = df.filter(regex='player', axis=1).columns
     players_df = df[cols_to_shift].copy()
     df = df.drop(cols_to_shift, axis=1)
@@ -104,9 +104,25 @@ def shift_player_cols_to_end(df: pd.DataFrame):
     return df
 
 
-def shift_result_cols_to_end(df: pd.DataFrame):
+def shift_result_cols_to_end(df: pd.DataFrame) -> pd.DataFrame:
     cols_to_shift = df.filter(regex='result', axis=1).columns
     results_df = df[cols_to_shift].copy()
     df = df.drop(cols_to_shift, axis=1)
     df = pd.concat([df, results_df], axis=1)
+    return df
+
+
+def shift_stat_cols_to_start(df: pd.DataFrame) -> pd.DataFrame:
+    cols_to_shift = [f'{home_away}_{col}' for home_away in ['home', 'away'] for col in MATCH_STATS_COLUMNS]
+    stats_df = df[cols_to_shift].copy()
+    df = df.drop(cols_to_shift, axis=1)
+    df = pd.concat([stats_df, df], axis=1)
+    return df
+
+
+def shift_score_cols_to_start(df: pd.DataFrame) -> pd.DataFrame:
+    cols_to_shift = [f'{home_away}_{col}' for home_away in ['home', 'away'] for col in ['home_score', 'away_score']]
+    scores_df = df[cols_to_shift].copy()
+    df = df.drop(cols_to_shift, axis=1)
+    df = pd.concat([scores_df, df], axis=1)
     return df
