@@ -23,8 +23,8 @@ class HybridRNN(nn.Module):
         hidden = self.tanh(pre_hidden)
         return hidden
 
-    def init_hidden(self, minibatch_size):
-        return torch.zeros(minibatch_size, self.hidden_size)
+    def init_hidden(self, batch_size):
+        return torch.zeros(batch_size, self.hidden_size)
 
 
 class HybridMLP(nn.Module):
