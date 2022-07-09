@@ -1,0 +1,122 @@
+import pandas as pd
+from sklearn.preprocessing import LabelEncoder
+
+from data_encoding import encode_seasons, encode_players, remove_lineup, encode_remaining_feats, \
+    shift_home_team_cols_to_end, shift_away_team_cols_to_end, shift_referee_cols_to_end, shift_player_cols_to_end, \
+    remove_teams, remove_referees, shift_result_cols_to_end
+from data_fixing import fix_issue_1, fix_issue_2, fix_issue_3
+from data_manipulation import convert_date_str_to_datetime, sort_by_date_column, cast_str_values_to_int, \
+    add_result_column, explode_datetime_values, drop_date_cols
+from utils import add_historic_data_of_last_n_matches_as_features, MATCH_STATS_COLUMNS, MATCH_LINEUP_COLUMNS
+
+INPUT_CSV_NAME = '../raw.csv'
+OUTPUT_CSV_NAME = 'data_hybrid.csv'
+INCLUDE_LINEUP = True
+INCLUDE_TEAMS = True
+INCLUDE_REFEREES = True
+
+
+def data_fixing(df: pd.DataFrame):
+    """Through manual inspection of the raw dataset, several matches with issues or inconsistent data were detected.
+    Let’s fix them. We will use another source of Serie A matches to compare with."""
+    print('===> Phase 1: DATA FIXING ')
+    df = fix_issue_1(df)
+    df = fix_issue_2(df)
+    df = fix_issue_3(df)
+    print('===> Phase 1: DONE')
+    return df
+
+
+def data_manipulation(df: pd.DataFrame):
+    def convert_wide_to_long(df: pd.DataFrame) -> pd.DataFrame:
+        df.insert(loc=0, column='id', value=df.index)
+        # delete all matches not having a complete history of 5 games
+        df = df.drop(df[df['home_season_5'] == '-'].index)
+        # rename columns of current match as historic with #0 index
+        df = df.rename(mapper=lambda col: f'home_{col}_0' if col in new_columns else col, axis='columns')
+        # duplicate #0 columns to maintain structure coherence. These will be deleted prior to training
+        for col in new_columns:
+            df.insert(loc=new_columns.index(col) + len(new_columns) + 1, column=f'away_{col}_0',
+                      value=df[f'home_{col}_0'])
+        # re-insert 'result' column
+        df.insert(loc=1, column='result', value=df['home_result_0'])
+        # convert wide to long
+        df = pd.wide_to_long(df, stubnames=[f'{home_or_away}_{col}' for col in new_columns for home_or_away in
+                                            ['home', 'away']], i=['id', 'result'], j='time_idx', sep='_', suffix='\d+')
+        # clean unwanted columns
+        df = df.drop(columns=['home_result', 'away_result'], axis=1)
+        df = df.reset_index()
+        df = df.sort_values(by=['id', 'time_idx'], ascending=[True, True])
+        df = df.reset_index(drop=True)
+        df = df.drop(columns=['id', 'time_idx'])
+        return df
+
+    def fill_stat_values(df: pd.DataFrame):
+        for col in [f'{home_away}_{col}' for home_away in ['home', 'away'] for col in MATCH_STATS_COLUMNS]:
+            df[col].replace(['-'], 0, inplace=True)
+
+    def force_type(df: pd.DataFrame) -> pd.DataFrame:
+        str_columns = MATCH_LINEUP_COLUMNS + ['season', 'year', 'home_team', 'away_team', 'referee']
+        str_columns = [f'home_{col}' for col in str_columns] + [f'away_{col}' for col in str_columns]
+        str_columns += ['result']
+        int_columns = [x for x in df.columns if x not in str_columns]
+        type_dict = {}
+        for int_col in int_columns:
+            type_dict[int_col] = 'int'
+        for str_col in str_columns:
+            type_dict[str_col] = 'str'
+        return df.astype(type_dict)
+
+    print('===> Phase 2: DATA MANIPULATION ')
+    if not INCLUDE_LINEUP:
+        df = remove_lineup(df)
+    if not INCLUDE_TEAMS:
+        df = remove_teams(df)
+    if not INCLUDE_REFEREES:
+        df = remove_referees(df)
+    df = convert_date_str_to_datetime(df)
+    df = sort_by_date_column(df)
+    df = cast_str_values_to_int(df)
+    df = add_result_column(df)
+    df = explode_datetime_values(df)
+    df = drop_date_cols(df)
+    new_columns = df.columns.tolist()
+    df = add_historic_data_of_last_n_matches_as_features(df)
+    df = convert_wide_to_long(df)
+    # fill missing stats values with 0
+    fill_stat_values(df)
+    # delete group of 5 match having a NaN value
+    df = df.drop(df.iloc[13860:13866, :].index).reset_index(drop=True)
+    # force correct type for all columns
+    df = force_type(df)
+    print('===> Phase 2: DONE ')
+    return df
+
+
+def data_encoding(df: pd.DataFrame):
+    print('===> Phase 3: DATA ENCODING ')
+    df = encode_seasons(df)
+    if INCLUDE_LINEUP:
+        df = encode_players(df)
+        # coaches will be encoded using get_dummies. Same for teams (if included) preserving home / away distinction
+    # label encode 'year'
+    le = LabelEncoder()
+    df['home_year'] = le.fit_transform(df['home_year'])
+    df['away_year'] = le.fit_transform(df['away_year'])
+    df = encode_remaining_feats(df)
+    df = shift_home_team_cols_to_end(df)
+    df = shift_away_team_cols_to_end(df)
+    df = shift_referee_cols_to_end(df)
+    df = shift_player_cols_to_end(df)
+    df = shift_result_cols_to_end(df)
+    print('===> Phase 3: DONE ')
+    return df
+
+
+if __name__ == '__main__':
+    df = pd.read_csv(INPUT_CSV_NAME)
+    df = data_fixing(df)
+    df = data_manipulation(df)
+    df = data_encoding(df)
+    df.to_csv(OUTPUT_CSV_NAME, index=False)
+    print(f'DONE. Final shape: {df.shape}')

@@ -1,6 +1,6 @@
 import pandas as pd
 
-from data_encoding import encode_seasons, encode_players, remove_players, encode_remaining_feats, \
+from data_encoding import encode_seasons, encode_players, remove_lineup, encode_remaining_feats, \
     shift_home_team_cols_to_end, shift_away_team_cols_to_end, shift_referee_cols_to_end, shift_player_cols_to_end
 from data_fixing import fix_issue_1, fix_issue_2, fix_issue_3
 from data_manipulation import convert_date_str_to_datetime, sort_by_date_column, cast_str_values_to_int, \
@@ -44,7 +44,7 @@ def data_encoding(df: pd.DataFrame):
     if INCLUDE_PLAYERS:
         df = encode_players(df)
     else:
-        df = remove_players(df)
+        df = remove_lineup(df)
     df = encode_remaining_feats(df)
     df = shift_home_team_cols_to_end(df)
     df = shift_away_team_cols_to_end(df)

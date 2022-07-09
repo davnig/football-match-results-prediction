@@ -7,41 +7,41 @@ def fix_issue_1(df: pd.DataFrame) -> pd.DataFrame:
 
     def fix_issue_1_home(df: pd.DataFrame, missing_goalkeeper: str):
         """Fix matches where LAZIO is the home team"""
-        to_fix_mask_home = (df['away_substitute_12'].isnull()) & (df['home_team'] == 'LAZIO')
+        to_fix_mask_home = (df['away_substitute12'].isnull()) & (df['home_team'] == 'LAZIO')
         for index in df[to_fix_mask_home].index:
             # shift substitutes
-            df.loc[index, 'home_substitute_1':'home_substitute_7'] = \
-                df.loc[index, 'home_player_11':'home_substitute_6'].values
+            df.loc[index, 'home_substitute1':'home_substitute7'] = \
+                df.loc[index, 'home_player11':'home_substitute6'].values
             # shift players
-            df.loc[index, 'home_player_2':'home_player_11'] = \
-                df.loc[index, 'home_player_1':'home_player_10'].values
+            df.loc[index, 'home_player2':'home_player11'] = \
+                df.loc[index, 'home_player1':'home_player10'].values
             # set goalkeeper
-            df.loc[index, 'home_player_1'] = missing_goalkeeper
+            df.loc[index, 'home_player1'] = missing_goalkeeper
             # right shift all away team data by one column
-            df.loc[index, 'away_coach':'away_substitute_12'] = \
-                df.loc[index, 'home_substitute_12':'away_substitute_11'].values
-            df.loc[index, 'home_substitute_12'] = '-'
+            df.loc[index, 'away_coach':'away_substitute12'] = \
+                df.loc[index, 'home_substitute12':'away_substitute11'].values
+            df.loc[index, 'home_substitute12'] = '-'
         return df
 
     def fix_issue_1_away(df: pd.DataFrame, missing_goalkeeper: str):
         """Fix matches where LAZIO is the away team"""
-        to_fix_mask_away = (df['away_substitute_12'].isnull()) & (df['away_team'] == 'LAZIO')
+        to_fix_mask_away = (df['away_substitute12'].isnull()) & (df['away_team'] == 'LAZIO')
         for index in df[to_fix_mask_away].index:
             # shift substitutes
-            df.loc[index, 'away_substitute_1':'away_substitute_7'] = \
-                df.loc[index, 'away_player_11':'away_substitute_6'].values
+            df.loc[index, 'away_substitute1':'away_substitute7'] = \
+                df.loc[index, 'away_player11':'away_substitute6'].values
             # shift players
-            df.loc[index, 'away_player_2':'away_player_11'] = \
-                df.loc[index, 'away_player_1':'away_player_10'].values
+            df.loc[index, 'away_player2':'away_player11'] = \
+                df.loc[index, 'away_player1':'away_player10'].values
             # set goalkeeper
-            df.loc[index, 'away_player_1'] = missing_goalkeeper
-            df.loc[index, 'away_substitute_12'] = '-'
+            df.loc[index, 'away_player1'] = missing_goalkeeper
+            df.loc[index, 'away_substitute12'] = '-'
         return df
 
     missing_goalkeeper = 'Marco Ballotta'
     df = fix_issue_1_home(df, missing_goalkeeper)
     df = fix_issue_1_away(df, missing_goalkeeper)
-    still_to_fix_mask = (df['away_substitute_12'].isnull()) & (
+    still_to_fix_mask = (df['away_substitute12'].isnull()) & (
             (df['home_team'] == 'LAZIO') | (df['away_team'] == 'LAZIO'))
     n_still_to_fix = len(df[still_to_fix_mask])
     if n_still_to_fix == 0:

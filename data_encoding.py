@@ -12,7 +12,7 @@ def encode_seasons(df: pd.DataFrame):
     season2index = {'20' + f'{i + 5}'.zfill(2) + '-' + f'{i + 6}'.zfill(2): i for i in range(16)}
     for col in df.filter(regex='season', axis=1).columns:
         df[col] = df[col].map(season2index)
-    print(f'DONE. Final shape: {df.shape}')
+    print(f'DONE. Shape: {df.shape}')
     return df
 
 
@@ -50,12 +50,20 @@ def encode_players(df: pd.DataFrame):
     players_df = pd.DataFrame(result, columns=home_away_player_columns)
     df = df.drop(player_columns, axis=1)
     df = pd.concat([df, players_df.set_index(df.index)], axis=1)
-    print(f'{LINE_FLUSH}Encoding players... DONE. Final shape: {df.shape}')
+    print(f'{LINE_FLUSH}Encoding players... DONE. Shape: {df.shape}')
     return df
 
 
-def remove_players(df: pd.DataFrame):
-    return df.drop(df.filter(regex='player|substitute', axis=1).columns, axis=1)
+def remove_lineup(df: pd.DataFrame) -> pd.DataFrame:
+    return df.drop(df.filter(regex='player|substitute|coach', axis=1).columns, axis=1)
+
+
+def remove_referees(df: pd.DataFrame) -> pd.DataFrame:
+    return df.drop(df.filter(regex='referee', axis=1).columns, axis=1)
+
+
+def remove_teams(df: pd.DataFrame) -> pd.DataFrame:
+    return df.drop(df.filter(regex='team', axis=1).columns, axis=1)
 
 
 def encode_remaining_feats(df: pd.DataFrame):
@@ -65,32 +73,40 @@ def encode_remaining_feats(df: pd.DataFrame):
 
 
 def shift_home_team_cols_to_end(df: pd.DataFrame):
-    cols_to_shift = get_column_names_containing_str(df, 'home_team')
-    players_df = df[cols_to_shift].copy()
+    cols_to_shift = df.filter(regex='home_team', axis=1).columns
+    home_teams_df = df[cols_to_shift].copy()
     df = df.drop(cols_to_shift, axis=1)
-    df = pd.concat([df, players_df], axis=1)
+    df = pd.concat([df, home_teams_df], axis=1)
     return df
 
 
 def shift_away_team_cols_to_end(df: pd.DataFrame):
-    cols_to_shift = get_column_names_containing_str(df, 'away_team')
-    players_df = df[cols_to_shift].copy()
+    cols_to_shift = df.filter(regex='away_team', axis=1).columns
+    away_teams_df = df[cols_to_shift].copy()
     df = df.drop(cols_to_shift, axis=1)
-    df = pd.concat([df, players_df], axis=1)
+    df = pd.concat([df, away_teams_df], axis=1)
     return df
 
 
 def shift_referee_cols_to_end(df: pd.DataFrame):
-    cols_to_shift = get_column_names_containing_str(df, 'referee')
+    cols_to_shift = df.filter(regex='referee', axis=1).columns
+    referees_df = df[cols_to_shift].copy()
+    df = df.drop(cols_to_shift, axis=1)
+    df = pd.concat([df, referees_df], axis=1)
+    return df
+
+
+def shift_player_cols_to_end(df: pd.DataFrame):
+    cols_to_shift = df.filter(regex='player', axis=1).columns
     players_df = df[cols_to_shift].copy()
     df = df.drop(cols_to_shift, axis=1)
     df = pd.concat([df, players_df], axis=1)
     return df
 
 
-def shift_player_cols_to_end(df: pd.DataFrame):
-    cols_to_shift = get_column_names_containing_str(df, 'player')
-    players_df = df[cols_to_shift].copy()
+def shift_result_cols_to_end(df: pd.DataFrame):
+    cols_to_shift = df.filter(regex='result', axis=1).columns
+    results_df = df[cols_to_shift].copy()
     df = df.drop(cols_to_shift, axis=1)
-    df = pd.concat([df, players_df], axis=1)
+    df = pd.concat([df, results_df], axis=1)
     return df
