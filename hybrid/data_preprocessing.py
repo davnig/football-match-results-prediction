@@ -8,11 +8,10 @@ from data_manipulation import convert_date_str_to_datetime, sort_by_date_column,
     add_result_column, explode_datetime_values, drop_date_cols
 from utils import add_historic_data_of_last_n_matches_as_features, MATCH_STATS_COLUMNS, MATCH_LINEUP_COLUMNS
 
+# If enabled, PLAYERS, COACHES, TEAMS and REFEREES will not be included
+LESS_DATA = True
 INPUT_CSV_NAME = '../raw.csv'
-OUTPUT_CSV_NAME = 'data_hybrid.csv'
-INCLUDE_LINEUP = True
-INCLUDE_TEAMS = True
-INCLUDE_REFEREES = True
+OUTPUT_CSV_NAME = 'data_hybrid_simple.csv' if LESS_DATA else 'data_hybrid.csv'
 
 """ 
 The goal of this pre-processing step is to clean the raw data and build a time series for every source match 
@@ -50,12 +49,15 @@ FINAL DATAFRAME:
 
 Legend:
 - 'MATCH_n' represent the data of a single match
-- 'result_n' is the outcome we want to predict
+- 'result_n' is the outcome of MATCH_n we want to predict
 - 'MATCH_N home_hist_n' represent the data of the n-th previous game played by the home team of MATCH_n
 - 'MATCH_N away_hist_n' represent the data of the n-th previous game played by the away team of MATCH_n
 
 Prior to training, this structure will be converted to a nested array allowing for a fast retrieval of football 
 match time series.
+
+The difference with `rnn\\data_preprocessing.py` is that here, in the final dataset, we keep the data of the source 
+match, of which we try to predict the result, as 6-th historic match in order to give extra context to the model.
 """
 
 
@@ -114,12 +116,6 @@ def data_manipulation(df: pd.DataFrame):
         return df.astype(type_dict)
 
     print('===> Phase 2: DATA MANIPULATION ')
-    if not INCLUDE_LINEUP:
-        df = remove_lineup(df)
-    if not INCLUDE_TEAMS:
-        df = remove_teams(df)
-    if not INCLUDE_REFEREES:
-        df = remove_referees(df)
     df = convert_date_str_to_datetime(df)
     df = sort_by_date_column(df)
     df = cast_str_values_to_int(df)
@@ -141,9 +137,14 @@ def data_manipulation(df: pd.DataFrame):
 def data_encoding(df: pd.DataFrame):
     print('===> Phase 3: DATA ENCODING ')
     df = encode_seasons(df)
-    if INCLUDE_LINEUP:
+    if not LESS_DATA:
         df = encode_players(df)
-        # coaches will be encoded using get_dummies. Same for teams (if included) preserving home / away distinction
+        # COACHES will be encoded using get_dummies.
+        # Same for TEAMS, preserving home / away distinction
+    else:
+        df = remove_lineup(df)
+        df = remove_teams(df)
+        df = remove_referees(df)
     # label encode 'year'
     le = LabelEncoder()
     df['home_year'] = le.fit_transform(df['home_year'])
