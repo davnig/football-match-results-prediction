@@ -7,13 +7,13 @@ from baseline.model import MLP
 from utils import count_features
 
 # If enabled, the model will not consider PLAYERS, COACHES, REFEREES and TEAMS features for training
-SIMPLE_MODEL = True
+SIMPLE_MODEL = False
 LEARNING_RATE = 0.001
-NUM_EPOCHS = 20
+NUM_EPOCHS = 50
 CSV_NAME = 'data_baseline_simple.csv' if SIMPLE_MODEL else 'data_baseline.csv'
 
 if __name__ == '__main__':
-    n_of_feats = count_features(CSV_NAME)
+    n_of_feats = count_features(CSV_NAME) - 3
     dataset = SerieAMatchesDataset(csv_file=CSV_NAME)
     model = MLP(dataset=dataset, input_size=n_of_feats, learning_rate=LEARNING_RATE)
     print(summary(model))

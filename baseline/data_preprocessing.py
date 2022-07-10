@@ -5,10 +5,11 @@ from data_encoding import encode_seasons, encode_players, remove_lineup, encode_
     remove_teams, remove_referees
 from data_fixing import fix_issue_1, fix_issue_2, fix_issue_3
 from data_manipulation import convert_date_str_to_datetime, sort_by_date_column, cast_str_values_to_int, \
-    add_result_column, explode_datetime_values, drop_date_cols, fill_stat_values, force_type
-
+    add_result_column, explode_datetime_values, drop_date_cols, force_type
 # If enabled, PLAYERS, COACHES, TEAMS and REFEREES will not be included
-LESS_DATA = False
+from utils import MATCH_STATS_COLUMNS
+
+LESS_DATA = True
 INPUT_CSV_NAME = 'raw.csv'
 OUTPUT_CSV_NAME = 'data_baseline_simple.csv' if LESS_DATA else 'data_baseline.csv'
 
@@ -32,9 +33,8 @@ def data_manipulation(df: pd.DataFrame):
     df = add_result_column(df)
     df = explode_datetime_values(df)
     df = drop_date_cols(df)
-    df = fill_stat_values(df)
     # let's delete the features that are not available at pre-match time
-    df = df.drop(columns=['home_score', 'away_score'])
+    df = df.drop(columns=['home_score', 'away_score'] + MATCH_STATS_COLUMNS)
     df = df.dropna()
     df = force_type(df)
     print('===> Phase 2: DONE ')
