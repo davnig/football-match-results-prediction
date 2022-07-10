@@ -2,7 +2,7 @@ import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 
 from data_encoding import encode_seasons, encode_players, remove_lineup, encode_remaining_feats, \
-    remove_teams, remove_referees, shift_result_cols_to_end, shift_stat_cols_to_start, shift_score_cols_to_start
+    remove_teams, remove_referees
 from data_fixing import fix_issue_1, fix_issue_2, fix_issue_3
 from data_manipulation import convert_date_str_to_datetime, sort_by_date_column, cast_str_values_to_int, \
     add_result_column, explode_datetime_values, drop_date_cols
@@ -48,13 +48,14 @@ FINAL DATAFRAME:
 |  11 |         | MATCH_1 home_hist_5 | MATCH_1 away_hist_5 | result_1 |
 ------------------------------------------------------------------------
 
-where:
+Legend:
 - 'MATCH_n' represent the data of a single match
 - 'result_n' is the outcome we want to predict
 - 'MATCH_N home_hist_n' represent the data of the n-th previous game played by the home team of MATCH_n
 - 'MATCH_N away_hist_n' represent the data of the n-th previous game played by the away team of MATCH_n
 
-This structure allows for fast retrieval of football match time series.
+Prior to training, this structure will be converted to a nested array allowing for a fast retrieval of football 
+match time series.
 """
 
 
@@ -71,20 +72,22 @@ def data_fixing(df: pd.DataFrame):
 
 def data_manipulation(df: pd.DataFrame):
     def convert_wide_to_long(df: pd.DataFrame) -> pd.DataFrame:
-        new_columns = df.columns.tolist()
-        df.insert(loc=0, column='id', value=df.index)
+        not_hist_columns = df.filter(regex='^(?!.*_[1-5]$).*$', axis=1).columns.tolist()
         # delete all matches not having a complete history of 5 games
         df = df.drop(df[df['home_season_5'] == '-'].index)
-        # rename columns of current match as historic with #0 index
-        df = df.rename(mapper=lambda col: f'home_{col}_0' if col in new_columns else col, axis='columns')
-        # duplicate #0 columns to maintain structure coherence. These will be deleted prior to training
-        for col in new_columns:
-            df.insert(loc=new_columns.index(col) + len(new_columns) + 1, column=f'away_{col}_0',
-                      value=df[f'home_{col}_0'])
+        # rename columns of current match as historic with #0 index and duplicate
+        home_current = pd.DataFrame(data=df.filter(regex='^(?!.*_[1-5]$).*$', axis=1).values.tolist(),
+                                    columns=[f'home_{col}_0' for col in not_hist_columns]).set_index(df.index)
+        away_current = pd.DataFrame(data=df.filter(regex='^(?!.*_[1-5]$).*$', axis=1).values.tolist(),
+                                    columns=[f'away_{col}_0' for col in not_hist_columns]).set_index(df.index)
+        df = df.drop(columns=df.filter(regex='^(?!.*_[1-5]$).*$', axis=1).columns, inplace=False)
+        df = pd.concat([home_current, away_current, df], axis=1)
         # re-insert 'result' column
         df.insert(loc=1, column='result', value=df['home_result_0'])
+        # insert 'id' columns
+        df.insert(loc=0, column='id', value=df.index)
         # convert wide to long
-        df = pd.wide_to_long(df, stubnames=[f'{home_or_away}_{col}' for col in new_columns for home_or_away in
+        df = pd.wide_to_long(df, stubnames=[f'{home_or_away}_{col}' for col in not_hist_columns for home_or_away in
                                             ['home', 'away']], i=['id', 'result'], j='time_idx', sep='_', suffix='\d+')
         # clean unwanted columns
         df = df.drop(columns=['home_result', 'away_result'], axis=1)
@@ -146,10 +149,6 @@ def data_encoding(df: pd.DataFrame):
     df['home_year'] = le.fit_transform(df['home_year'])
     df['away_year'] = le.fit_transform(df['away_year'])
     df = encode_remaining_feats(df)
-    df = shift_stat_cols_to_start(df)
-    df = shift_score_cols_to_start(df)
-    df = shift_result_cols_to_end(df)
-    # todo: home and away data are not sequential
     print('===> Phase 3: DONE ')
     return df
 
