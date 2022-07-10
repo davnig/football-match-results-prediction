@@ -5,8 +5,8 @@ from data_encoding import encode_seasons, encode_players, remove_lineup, encode_
     remove_teams, remove_referees
 from data_fixing import fix_issue_1, fix_issue_2, fix_issue_3
 from data_manipulation import convert_date_str_to_datetime, sort_by_date_column, cast_str_values_to_int, \
-    add_result_column, explode_datetime_values, drop_date_cols
-from utils import add_historic_data_of_last_n_matches_as_features, MATCH_STATS_COLUMNS, MATCH_LINEUP_COLUMNS
+    add_result_column, explode_datetime_values, drop_date_cols, force_type_in_hist_df, fill_stat_values_in_hist_df
+from utils import add_historic_data_of_last_n_matches_as_features
 
 # If enabled, PLAYERS, COACHES, TEAMS and REFEREES will not be included
 LESS_DATA = True
@@ -99,22 +99,6 @@ def data_manipulation(df: pd.DataFrame):
         df = df.drop(columns=['id', 'time_idx'])
         return df
 
-    def fill_stat_values(df: pd.DataFrame):
-        for col in [f'{home_away}_{col}' for home_away in ['home', 'away'] for col in MATCH_STATS_COLUMNS]:
-            df[col].replace(['-'], 0, inplace=True)
-
-    def force_type(df: pd.DataFrame) -> pd.DataFrame:
-        str_columns = MATCH_LINEUP_COLUMNS + ['season', 'year', 'home_team', 'away_team', 'referee']
-        str_columns = [f'home_{col}' for col in str_columns] + [f'away_{col}' for col in str_columns]
-        str_columns += ['result']
-        int_columns = [x for x in df.columns if x not in str_columns]
-        type_dict = {}
-        for int_col in int_columns:
-            type_dict[int_col] = 'int'
-        for str_col in str_columns:
-            type_dict[str_col] = 'str'
-        return df.astype(type_dict)
-
     print('===> Phase 2: DATA MANIPULATION ')
     df = convert_date_str_to_datetime(df)
     df = sort_by_date_column(df)
@@ -124,12 +108,11 @@ def data_manipulation(df: pd.DataFrame):
     df = drop_date_cols(df)
     df = add_historic_data_of_last_n_matches_as_features(df)
     df = convert_wide_to_long(df)
-    # fill missing stats values with 0
-    fill_stat_values(df)
+    df = fill_stat_values_in_hist_df(df)
     # delete group of 5 match having a NaN value
     df = df.drop(df.iloc[13860:13866, :].index).reset_index(drop=True)
     # force correct type for all columns
-    df = force_type(df)
+    df = force_type_in_hist_df(df)
     print('===> Phase 2: DONE ')
     return df
 

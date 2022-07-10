@@ -1,6 +1,7 @@
 import pandas as pd
 
 from MatchResult import MatchResult
+from utils import MATCH_LINEUP_COLUMNS, MATCH_STATS_COLUMNS
 
 
 def convert_date_str_to_datetime(df: pd.DataFrame) -> pd.DataFrame:
@@ -61,3 +62,44 @@ def drop_date_cols(df: pd.DataFrame) -> pd.DataFrame:
     df = df.drop('date', axis=1, inplace=False)
     df = df.drop('time', axis=1, inplace=False)
     return df
+
+
+def fill_stat_values_in_hist_df(df: pd.DataFrame):
+    """Fill missing stats values with 0 in historic dataframe"""
+    for col in [f'{home_away}_{col}' for home_away in ['home', 'away'] for col in MATCH_STATS_COLUMNS]:
+        df[col].replace(['-'], 0, inplace=True)
+    return df
+
+
+def fill_stat_values(df: pd.DataFrame):
+    """Fill missing stats values with 0"""
+    for col in MATCH_STATS_COLUMNS:
+        df[col].replace(['-'], 0, inplace=True)
+    return df
+
+
+def force_type_in_hist_df(df: pd.DataFrame) -> pd.DataFrame:
+    """Cast data to proper type in historic dataframe"""
+    str_columns = MATCH_LINEUP_COLUMNS + ['season', 'year', 'home_team', 'away_team', 'referee']
+    str_columns = [f'home_{col}' for col in str_columns] + [f'away_{col}' for col in str_columns]
+    str_columns += ['result']
+    int_columns = [x for x in df.columns if x not in str_columns]
+    type_dict = {}
+    for int_col in int_columns:
+        type_dict[int_col] = 'int'
+    for str_col in str_columns:
+        type_dict[str_col] = 'str'
+    return df.astype(type_dict)
+
+
+def force_type(df: pd.DataFrame) -> pd.DataFrame:
+    """Cast data to proper type"""
+    str_columns = MATCH_LINEUP_COLUMNS + ['season', 'year', 'home_team', 'away_team', 'referee']
+    str_columns += ['result']
+    int_columns = [x for x in df.columns if x not in str_columns]
+    type_dict = {}
+    for int_col in int_columns:
+        type_dict[int_col] = 'int'
+    for str_col in str_columns:
+        type_dict[str_col] = 'str'
+    return df.astype(type_dict)

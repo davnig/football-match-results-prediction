@@ -7,7 +7,7 @@ from baseline.model import MLP
 from utils import count_features
 
 # If enabled, the model will not consider PLAYERS, COACHES, REFEREES and TEAMS features for training
-SIMPLE_MODEL = False
+SIMPLE_MODEL = True
 LEARNING_RATE = 0.001
 NUM_EPOCHS = 20
 CSV_NAME = 'data_baseline_simple.csv' if SIMPLE_MODEL else 'data_baseline.csv'

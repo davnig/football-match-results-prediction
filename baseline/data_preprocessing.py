@@ -1,11 +1,11 @@
 import pandas as pd
+from sklearn.preprocessing import LabelEncoder
 
 from data_encoding import encode_seasons, encode_players, remove_lineup, encode_remaining_feats, \
-    shift_home_team_cols_to_end, shift_away_team_cols_to_end, shift_referee_cols_to_end, shift_player_cols_to_end, \
     remove_teams, remove_referees
 from data_fixing import fix_issue_1, fix_issue_2, fix_issue_3
 from data_manipulation import convert_date_str_to_datetime, sort_by_date_column, cast_str_values_to_int, \
-    add_result_column, explode_datetime_values, drop_date_cols
+    add_result_column, explode_datetime_values, drop_date_cols, fill_stat_values, force_type
 
 # If enabled, PLAYERS, COACHES, TEAMS and REFEREES will not be included
 LESS_DATA = False
@@ -32,9 +32,11 @@ def data_manipulation(df: pd.DataFrame):
     df = add_result_column(df)
     df = explode_datetime_values(df)
     df = drop_date_cols(df)
+    df = fill_stat_values(df)
     # let's delete the features that are not available at pre-match time
     df = df.drop(columns=['home_score', 'away_score'])
     df = df.dropna()
+    df = force_type(df)
     print('===> Phase 2: DONE ')
     return df
 
@@ -48,17 +50,16 @@ def data_encoding(df: pd.DataFrame):
         df = remove_lineup(df)
         df = remove_teams(df)
         df = remove_referees(df)
+    # label encode 'year'
+    le = LabelEncoder()
+    df['year'] = le.fit_transform(df['year'])
     df = encode_remaining_feats(df)
-    df = shift_home_team_cols_to_end(df)
-    df = shift_away_team_cols_to_end(df)
-    df = shift_referee_cols_to_end(df)
-    df = shift_player_cols_to_end(df)
     print('===> Phase 3: DONE ')
     return df
 
 
 if __name__ == '__main__':
-    df = pd.read_csv(INPUT_CSV_NAME)
+    df = pd.read_csv('../' + INPUT_CSV_NAME)
     df = data_fixing(df)
     df = data_manipulation(df)
     df = data_encoding(df)
