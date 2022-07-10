@@ -33,7 +33,7 @@ if __name__ == '__main__':
     mlp = HybridMLP(HIDDEN_SIZE * 2 + n_feats_mlp)
     model = HybridNetwork(dataset=dataset, rnn_home_model=rnn_home, rnn_away_model=rnn_away, mlp_model=mlp,
                           learning_rate=LEARNING_RATE, batch_size=BATCH_SIZE)
-    print(summary(model))
+    summary(model)
     logger = TensorBoardLogger("../training_logs", name="hybrid_results")
     trainer = Trainer(fast_dev_run=False, gpus=1, max_epochs=NUM_EPOCHS, logger=logger)
     trainer.fit(model)

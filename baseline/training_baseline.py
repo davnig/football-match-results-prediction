@@ -16,7 +16,7 @@ if __name__ == '__main__':
     n_of_feats = count_features(CSV_NAME) - 3
     dataset = SerieAMatchesDataset(csv_file=CSV_NAME)
     model = MLP(dataset=dataset, input_size=n_of_feats, learning_rate=LEARNING_RATE)
-    print(summary(model))
+    summary(model)
     logger = TensorBoardLogger("../training_logs", name="baseline_results")
     trainer = Trainer(gpus=1, max_epochs=NUM_EPOCHS, logger=logger)
     trainer.fit(model)
