@@ -14,9 +14,9 @@ CSV_NAME = 'data_rnn.csv'
 if __name__ == '__main__':
     n_of_feats = count_features(CSV_NAME) - 3
     dataset = RNNSerieADataset(csv_file=CSV_NAME)
-    model = RNN(dataset=dataset, input_size=n_of_feats, hidden_size=HIDDEN_SIZE, output_size=3, batch_size=BATCH_SIZE,
+    model = RNN(dataset=dataset, input_size=n_of_feats, hidden_size=HIDDEN_SIZE, batch_size=BATCH_SIZE,
                 learning_rate=LEARNING_RATE)
-    logger = TensorBoardLogger("../lightning_logs", name="rnn_results")
+    logger = TensorBoardLogger("./", name="rnn_results")
     trainer = Trainer(gpus=1, max_epochs=NUM_EPOCHS, logger=logger)
     trainer.fit(model)
     trainer.test(model)

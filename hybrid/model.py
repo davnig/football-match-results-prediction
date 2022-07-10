@@ -11,20 +11,22 @@ from utils import accuracy
 
 
 class HybridRNN(nn.Module):
-    def __init__(self, input_size, hidden_size):
+    def __init__(self, input_size, hidden_size, batch_size):
         super(HybridRNN, self).__init__()
         self.hidden_size = hidden_size
+        self.batch_size = batch_size
         self.linear = nn.Linear(input_size + hidden_size, hidden_size)
         self.tanh = nn.Tanh()
 
-    def forward(self, input, hidden):
-        combined = torch.cat([input, hidden], dim=0)
-        pre_hidden = self.linear(combined)
-        hidden = self.tanh(pre_hidden)
+    def forward(self, x, hidden):
+        for i in range(x.shape[1]):
+            input = torch.cat([x[:, i, :], hidden], dim=1)
+            pre_hidden = self.linear(input)
+            hidden = self.tanh(pre_hidden)
         return hidden
 
-    def init_hidden(self, batch_size):
-        return torch.zeros(batch_size, self.hidden_size)
+    def init_hidden(self):
+        return torch.zeros(self.batch_size, self.hidden_size)
 
 
 class HybridMLP(nn.Module):
@@ -46,10 +48,6 @@ class HybridMLP(nn.Module):
         )
 
     def forward(self, x):
-        # 'x' is the combination of: 'x', 'x_historical_home', 'x_historical_away'
-        # they all have size: minibatch_size x num_of_feats
-        x = x.to(dtype=torch.float)
-        x = self.flatten(x)  # just in case x was not flattened
         output = self.layers(x)
         return output
 
@@ -83,45 +81,31 @@ class HybridNetwork(pl.LightningModule):
     def test_dataloader(self):
         return DataLoader(self.test_set, batch_size=self.batch_size)
 
-    def forward(self, x, x_historical_home, x_historical_away):
-        """Compute y_hat from dataloader input"""
-        # 'x' comes in as:                minibatch_size x 1 x num_of_feats
-        # 'x_historical_*' comes in as:   minibatch_size x 5 x num_of_feats
-        # 'rnn_*_hidden' will be:         minibatch_size x num_of_feats
-        batch_size = x.size(0)
-        time_seq_len = x_historical_home.size(1)
+    def forward(self, x_rnn_home, x_rnn_away, x_mlp):
         cuda_0 = torch.device('cuda:0')
         ''' === RNN HOME FORWARD === '''
-        rnn_home_hidden = self.rnn_home.init_hidden(batch_size)
+        rnn_home_hidden = self.rnn_home.init_hidden()
         rnn_home_hidden = rnn_home_hidden.to(cuda_0)
-        for batch_idx in range(batch_size):
-            for history_idx in range(time_seq_len):
-                rnn_home_hidden[batch_idx] = self.rnn_home(
-                    torch.flatten(x_historical_home[batch_idx, history_idx]),
-                    rnn_home_hidden[batch_idx])
+        rnn_home_hidden = self.rnn_home(x_rnn_home, rnn_home_hidden)
         ''' === RNN AWAY FORWARD === '''
-        rnn_away_hidden = self.rnn_away.init_hidden(batch_size)
+        rnn_away_hidden = self.rnn_away.init_hidden()
         rnn_away_hidden = rnn_away_hidden.to(cuda_0)
-        for batch_idx in range(batch_size):
-            for history_idx in range(time_seq_len):
-                rnn_away_hidden[batch_idx] = self.rnn_away(
-                    torch.flatten(x_historical_away[batch_idx, history_idx]),
-                    rnn_away_hidden[batch_idx])
+        rnn_away_hidden = self.rnn_away(x_rnn_away, rnn_away_hidden)
         ''' === MLP FORWARD === '''
-        x_train = torch.cat([x, rnn_home_hidden, rnn_away_hidden], dim=1)
+        x_train = torch.cat([x_mlp.reshape(self.batch_size, x_mlp.shape[2]), rnn_home_hidden, rnn_away_hidden], dim=1)
         y_hat = self.mlp(x_train)
         return y_hat
 
     def training_step(self, batch, batch_idx):
-        x, x_historical_home, x_historical_away, y = batch
-        y_hat = self(x, x_historical_home, x_historical_away)
+        x_rnn_home, x_rnn_away, x_mlp, y = batch
+        y_hat = self(x_rnn_home, x_rnn_away, x_mlp)
         loss = F.cross_entropy(y_hat, y.to(dtype=torch.float))
         tensorboard_logs = {"train_loss": loss}
         return {"loss": loss, "log": tensorboard_logs}
 
     def validation_step(self, batch, batch_idx):
-        x, x_historical_home, x_historical_away, y = batch
-        y_hat = self(x, x_historical_home, x_historical_away)
+        x_rnn_home, x_rnn_away, x_mlp, y = batch
+        y_hat = self(x_rnn_home, x_rnn_away, x_mlp)
         val_loss = F.cross_entropy(y_hat, y.to(dtype=torch.float))
         val_accuracy = accuracy(y, y_hat)
         return {"val_loss": val_loss, "val_accuracy": val_accuracy}
@@ -134,8 +118,8 @@ class HybridNetwork(pl.LightningModule):
         return {"val_loss": avg_loss, "log": tensorboard_logs}
 
     def test_step(self, batch, batch_idx):
-        x, x_historical_home, x_historical_away, y = batch
-        y_hat = self(x, x_historical_home, x_historical_away)
+        x_rnn_home, x_rnn_away, x_mlp, y = batch
+        y_hat = self(x_rnn_home, x_rnn_away, x_mlp)
         test_loss = F.cross_entropy(y_hat, y.to(dtype=torch.float))
         test_accuracy = accuracy(y, y_hat)
         return {"test_loss": test_loss, "test_accuracy": test_accuracy}
@@ -147,8 +131,8 @@ class HybridNetwork(pl.LightningModule):
         return {"test_loss": avg_loss, "log": tensorboard_logs, "progress_bar": tensorboard_logs}
 
     def predict_step(self, batch):
-        x, x_historical_home, x_historical_away, y = batch
-        return self(x, x_historical_home, x_historical_away)
+        x_rnn_home, x_rnn_away, x_mlp, y = batch
+        return self(x_rnn_home, x_rnn_away, x_mlp)
 
     def configure_optimizers(self):
         return optim.SGD(self.parameters(), lr=self.learning_rate)

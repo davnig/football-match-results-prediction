@@ -2,21 +2,23 @@ import pytorch_lightning as pl
 import torch
 import torch.nn.functional as F
 from torch import nn, optim
-from torch.utils.data import random_split, DataLoader
+from torch.utils.data import random_split, DataLoader, Dataset
 
 from utils import accuracy
 
 
 class RNN(pl.LightningModule):
-    def __init__(self, dataset, input_size, hidden_size, output_size, batch_size, learning_rate):
+    def __init__(self, dataset, input_size, hidden_size, batch_size, learning_rate):
         super(RNN, self).__init__()
         self.dataset = dataset
         self.hidden_size = hidden_size
-        self.output_size = output_size
         self.batch_size = batch_size
         self.learning_rate = learning_rate
+        self.train_set = Dataset()
+        self.val_set = Dataset()
+        self.test_set = Dataset()
         self.linear = nn.Linear(input_size + hidden_size, hidden_size)
-        self.linear_out = nn.Linear(hidden_size, output_size)
+        self.linear_out = nn.Linear(hidden_size, 3)
         self.tanh = nn.Tanh()
         self.softmax = nn.Softmax(dim=1)
 
