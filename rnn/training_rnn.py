@@ -11,7 +11,7 @@ SIMPLE_MODEL = True
 LEARNING_RATE = 0.001
 NUM_EPOCHS = 100
 HIDDEN_SIZE = 128
-BATCH_SIZE = 32
+BATCH_SIZE = 16
 CSV_NAME = 'data_rnn_simple.csv' if SIMPLE_MODEL else 'data_rnn.csv'
 
 if __name__ == '__main__':

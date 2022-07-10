@@ -10,9 +10,9 @@ from utils import MATCH_STATS_COLUMNS
 # If enabled, the model will not consider PLAYERS, COACHES, REFEREES and TEAMS features for training
 SIMPLE_MODEL = True
 LEARNING_RATE = 0.001
-NUM_EPOCHS = 50
+NUM_EPOCHS = 100
 HIDDEN_SIZE = 128
-BATCH_SIZE = 32
+BATCH_SIZE = 16
 CSV_NAME = 'data_hybrid_simple.csv' if SIMPLE_MODEL else 'data_hybrid.csv'
 
 
