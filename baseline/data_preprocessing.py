@@ -1,15 +1,16 @@
 import pandas as pd
 
 from data_encoding import encode_seasons, encode_players, remove_lineup, encode_remaining_feats, \
-    shift_home_team_cols_to_end, shift_away_team_cols_to_end, shift_referee_cols_to_end, shift_player_cols_to_end
+    shift_home_team_cols_to_end, shift_away_team_cols_to_end, shift_referee_cols_to_end, shift_player_cols_to_end, \
+    remove_teams, remove_referees
 from data_fixing import fix_issue_1, fix_issue_2, fix_issue_3
 from data_manipulation import convert_date_str_to_datetime, sort_by_date_column, cast_str_values_to_int, \
     add_result_column, explode_datetime_values, drop_date_cols
 
+# If enabled, PLAYERS, COACHES, TEAMS and REFEREES will not be included
+LESS_DATA = False
 INPUT_CSV_NAME = 'raw.csv'
-OUTPUT_CSV_NAME = 'data_baseline.csv'
-# add player names as features
-INCLUDE_PLAYERS = True
+OUTPUT_CSV_NAME = 'data_baseline_simple.csv' if LESS_DATA else 'data_baseline.csv'
 
 
 def data_fixing(df: pd.DataFrame):
@@ -41,10 +42,12 @@ def data_manipulation(df: pd.DataFrame):
 def data_encoding(df: pd.DataFrame):
     print('===> Phase 3: DATA ENCODING ')
     df = encode_seasons(df)
-    if INCLUDE_PLAYERS:
+    if not LESS_DATA:
         df = encode_players(df)
     else:
         df = remove_lineup(df)
+        df = remove_teams(df)
+        df = remove_referees(df)
     df = encode_remaining_feats(df)
     df = shift_home_team_cols_to_end(df)
     df = shift_away_team_cols_to_end(df)

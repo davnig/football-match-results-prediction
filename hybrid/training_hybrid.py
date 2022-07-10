@@ -7,11 +7,13 @@ from hybrid.dataset import HybridSerieADataset
 from hybrid.model import HybridRNN, HybridMLP, HybridNetwork
 from utils import MATCH_STATS_COLUMNS
 
+# If enabled, the model will not consider PLAYERS, COACHES, REFEREES and TEAMS features for training
+SIMPLE_MODEL = True
 LEARNING_RATE = 0.001
 NUM_EPOCHS = 20
 HIDDEN_SIZE = 128
 BATCH_SIZE = 1
-CSV_NAME = 'data_hybrid.csv'
+CSV_NAME = 'data_hybrid_simple.csv' if SIMPLE_MODEL else 'data_hybrid.csv'
 
 
 def count_features(data_csv: str):
@@ -32,7 +34,7 @@ if __name__ == '__main__':
     model = HybridNetwork(dataset=dataset, rnn_home_model=rnn_home, rnn_away_model=rnn_away, mlp_model=mlp,
                           learning_rate=LEARNING_RATE, batch_size=BATCH_SIZE)
     print(summary(model))
-    logger = TensorBoardLogger("./", name="hybrid_results")
+    logger = TensorBoardLogger("../training_logs", name="hybrid_results")
     trainer = Trainer(fast_dev_run=False, gpus=1, max_epochs=NUM_EPOCHS, logger=logger)
     trainer.fit(model)
     trainer.test(model)
