@@ -11,10 +11,9 @@ from utils import accuracy
 
 
 class HybridRNN(nn.Module):
-    def __init__(self, input_size, hidden_size, batch_size):
+    def __init__(self, input_size, hidden_size):
         super(HybridRNN, self).__init__()
         self.hidden_size = hidden_size
-        self.batch_size = batch_size
         self.linear = nn.Linear(input_size + hidden_size, hidden_size)
         self.tanh = nn.Tanh()
 
@@ -25,8 +24,8 @@ class HybridRNN(nn.Module):
             hidden = self.tanh(pre_hidden)
         return hidden
 
-    def init_hidden(self):
-        return torch.zeros(self.batch_size, self.hidden_size)
+    def init_hidden(self, x_batch_size):
+        return torch.zeros(x_batch_size, self.hidden_size)
 
 
 class HybridMLP(nn.Module):
@@ -84,15 +83,15 @@ class HybridNetwork(pl.LightningModule):
     def forward(self, x_rnn_home, x_rnn_away, x_mlp):
         cuda_0 = torch.device('cuda:0')
         ''' === RNN HOME FORWARD === '''
-        rnn_home_hidden = self.rnn_home.init_hidden()
+        rnn_home_hidden = self.rnn_home.init_hidden(x_rnn_home.shape[0])
         rnn_home_hidden = rnn_home_hidden.to(cuda_0)
         rnn_home_hidden = self.rnn_home(x_rnn_home, rnn_home_hidden)
         ''' === RNN AWAY FORWARD === '''
-        rnn_away_hidden = self.rnn_away.init_hidden()
+        rnn_away_hidden = self.rnn_away.init_hidden(x_rnn_home.shape[0])
         rnn_away_hidden = rnn_away_hidden.to(cuda_0)
         rnn_away_hidden = self.rnn_away(x_rnn_away, rnn_away_hidden)
         ''' === MLP FORWARD === '''
-        x_train = torch.cat([x_mlp.reshape(self.batch_size, x_mlp.shape[2]), rnn_home_hidden, rnn_away_hidden], dim=1)
+        x_train = torch.cat([x_mlp.reshape(x_mlp.shape[0], x_mlp.shape[2]), rnn_home_hidden, rnn_away_hidden], dim=1)
         y_hat = self.mlp(x_train)
         return y_hat
 

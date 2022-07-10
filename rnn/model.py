@@ -22,8 +22,8 @@ class RNN(pl.LightningModule):
         self.tanh = nn.Tanh()
         self.softmax = nn.Softmax(dim=1)
 
-    def init_hidden(self):
-        return torch.zeros(self.batch_size, self.hidden_size, device=torch.device('cuda:0'))
+    def init_hidden(self, x_batch_size):
+        return torch.zeros(x_batch_size, self.hidden_size, device=torch.device('cuda:0'))
 
     def setup(self, stage):
         test_size = int(0.2 * len(self.dataset))
@@ -50,7 +50,7 @@ class RNN(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         x, y = batch
-        hidden = self.init_hidden()
+        hidden = self.init_hidden(x.shape[0])
         _, y_hat = self(x, hidden)
         loss = F.cross_entropy(y_hat, y.to(dtype=torch.float))
         tensorboard_logs = {"train_loss": loss}
@@ -58,7 +58,7 @@ class RNN(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
-        hidden = self.init_hidden()
+        hidden = self.init_hidden(x.shape[0])
         _, y_hat = self(x, hidden)
         val_loss = F.cross_entropy(y_hat, y.to(dtype=torch.float))
         val_accuracy = accuracy(y, y_hat)
@@ -73,7 +73,7 @@ class RNN(pl.LightningModule):
 
     def test_step(self, batch, batch_idx):
         x, y = batch
-        hidden = self.init_hidden()
+        hidden = self.init_hidden(x.shape[0])
         _, y_hat = self(x, hidden)
         test_loss = F.cross_entropy(y_hat, y.to(dtype=torch.float))
         test_accuracy = accuracy(y, y_hat)
