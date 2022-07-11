@@ -6,9 +6,9 @@ from data_encoding import encode_seasons, encode_players, remove_lineup, encode_
 from data_fixing import fix_issue_1, fix_issue_2, fix_issue_3
 from data_manipulation import convert_date_str_to_datetime, sort_by_date_column, cast_str_values_to_int, \
     add_result_column, explode_datetime_values, drop_date_cols, force_type
-# If enabled, PLAYERS, COACHES, TEAMS and REFEREES will not be included
 from utils import MATCH_STATS_COLUMNS
 
+# If enabled, PLAYERS, COACHES, TEAMS and REFEREES will not be included
 LESS_DATA = True
 INPUT_CSV_NAME = 'raw.csv'
 OUTPUT_CSV_NAME = 'data_baseline_simple.csv' if LESS_DATA else 'data_baseline.csv'

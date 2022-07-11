@@ -9,7 +9,7 @@ def get_column_names_containing_str(df: pd.DataFrame, substring: str) -> list[st
 
 def encode_seasons(df: pd.DataFrame):
     print('Encoding seasons...', end=' ')
-    season2index = {'20' + f'{i + 5}'.zfill(2) + '-' + f'{i + 6}'.zfill(2): i for i in range(16)}
+    season2index = {'20' + f'{i + 5}'.zfill(2) + '-' + f'{i + 6}'.zfill(2): i for i in range(17)}
     for col in df.filter(regex='season', axis=1).columns:
         df[col] = df[col].map(season2index)
     print(f'DONE. Shape: {df.shape}')

@@ -171,7 +171,7 @@ def fetch_all_matches_pages_async(matches_uris, queue):
 
 
 def scrape():
-    years = np.arange(2005, 2021, 1)
+    years = np.arange(2013, 2022, 1)
     seasons = np.array(["{}-{}".format(years[i], years[i] + 1).replace('-20', '-') for i in range(years.size)])
     exp_num_of_matches_per_round = 10
     print(f'Will scrape data from season {seasons[0]} to season {seasons[-1]}')
