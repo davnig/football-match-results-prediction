@@ -10,7 +10,7 @@ from data_manipulation import convert_date_str_to_datetime, sort_by_date_column,
 from utils import add_historic_data_of_last_n_matches_as_features
 
 # If enabled, PLAYERS, COACHES, TEAMS and REFEREES will not be included
-LESS_DATA = False
+LESS_DATA = True
 INPUT_CSV_NAME = 'raw.csv'
 OUTPUT_CSV_NAME = 'data_rnn_simple.csv' if LESS_DATA else 'data_rnn.csv'
 

@@ -55,6 +55,7 @@ class HybridNetwork(pl.LightningModule):
     def __init__(self, dataset, rnn_home_model: HybridRNN, rnn_away_model: HybridRNN, mlp_model: HybridMLP,
                  learning_rate: float = 0.001, batch_size: int = 32):
         super(HybridNetwork, self).__init__()
+        self.save_hyperparameters()
         self.dataset = dataset
         self.rnn_home = rnn_home_model
         self.rnn_away = rnn_away_model
@@ -99,37 +100,24 @@ class HybridNetwork(pl.LightningModule):
         x_rnn_home, x_rnn_away, x_mlp, y = batch
         y_hat = self(x_rnn_home, x_rnn_away, x_mlp)
         loss = F.cross_entropy(y_hat, y.to(dtype=torch.float))
-        tensorboard_logs = {"train_loss": loss}
-        return {"loss": loss, "log": tensorboard_logs}
+        self.log('train_loss', loss)
+        return loss
 
     def validation_step(self, batch, batch_idx):
         x_rnn_home, x_rnn_away, x_mlp, y = batch
         y_hat = self(x_rnn_home, x_rnn_away, x_mlp)
         val_loss = F.cross_entropy(y_hat, y.to(dtype=torch.float))
         val_accuracy = accuracy(y, y_hat)
-        return {"val_loss": val_loss, "val_accuracy": val_accuracy}
-
-    def validation_epoch_end(self, outputs):
-        avg_loss = torch.stack([el["val_loss"] for el in outputs]).mean()
-        avg_accuracy = torch.tensor([el["val_accuracy"] for el in outputs]).mean()
-        tensorboard_logs = {"val_loss": avg_loss, "val_accuracy": avg_accuracy}
-        print(f'val_avg_accuracy: {avg_accuracy} val_avg_loss: {avg_loss}')
-        return {"val_loss": avg_loss, "log": tensorboard_logs}
+        self.log_dict({"val_accuracy": val_accuracy, "val_loss": val_loss}, prog_bar=True)
 
     def test_step(self, batch, batch_idx):
         x_rnn_home, x_rnn_away, x_mlp, y = batch
         y_hat = self(x_rnn_home, x_rnn_away, x_mlp)
         test_loss = F.cross_entropy(y_hat, y.to(dtype=torch.float))
         test_accuracy = accuracy(y, y_hat)
-        return {"test_loss": test_loss, "test_accuracy": test_accuracy}
+        self.log_dict({"test_accuracy": test_accuracy, "test_loss": test_loss}, prog_bar=True)
 
-    def test_epoch_end(self, outputs):
-        avg_loss = torch.stack([el["test_loss"] for el in outputs]).mean()
-        avg_accuracy = torch.tensor([el["test_accuracy"] for el in outputs]).mean()
-        tensorboard_logs = {"test_loss": avg_loss, "avg_accuracy": avg_accuracy}
-        return {"test_loss": avg_loss, "log": tensorboard_logs, "progress_bar": tensorboard_logs}
-
-    def predict_step(self, batch):
+    def predict_step(self, batch, batch_idx, dataloader_idx=0):
         x_rnn_home, x_rnn_away, x_mlp, y = batch
         return self(x_rnn_home, x_rnn_away, x_mlp)
 

@@ -17,6 +17,6 @@ class SerieAMatchesDataset(Dataset):
     def __getitem__(self, idx):
         x = self.x_train[idx]
         y = self.y_train[idx]
-        x = torch.from_numpy(x)
-        y = torch.from_numpy(y)
+        x = torch.from_numpy(x.astype('float32'))
+        y = torch.from_numpy(y.astype('float32'))
         return x, y

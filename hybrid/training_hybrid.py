@@ -1,5 +1,6 @@
 import pandas as pd
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.loggers import TensorBoardLogger
 from torchsummary import summary
 
@@ -10,9 +11,11 @@ from utils import MATCH_STATS_COLUMNS
 # If enabled, the model will not consider PLAYERS, COACHES, REFEREES and TEAMS features for training
 SIMPLE_MODEL = True
 LEARNING_RATE = 0.001
-NUM_EPOCHS = 100
-HIDDEN_SIZE = 128
-BATCH_SIZE = 16
+NUM_EPOCHS = 200
+HIDDEN_SIZE = 256
+BATCH_SIZE = 32
+EARLY_STOP_DELTA = 0.000001
+EARLY_STOP_PATIENCE = 15
 CSV_NAME = 'data_hybrid_simple.csv' if SIMPLE_MODEL else 'data_hybrid.csv'
 
 
@@ -35,6 +38,8 @@ if __name__ == '__main__':
                           learning_rate=LEARNING_RATE, batch_size=BATCH_SIZE)
     summary(model)
     logger = TensorBoardLogger("../training_logs", name="hybrid_results")
-    trainer = Trainer(fast_dev_run=False, gpus=1, max_epochs=NUM_EPOCHS, logger=logger)
+    early_stop = EarlyStopping(monitor="val_loss", min_delta=EARLY_STOP_DELTA, patience=EARLY_STOP_PATIENCE, mode="min",
+                               check_on_train_epoch_end=False)
+    trainer = Trainer(fast_dev_run=False, gpus=1, max_epochs=NUM_EPOCHS, logger=logger, callbacks=[early_stop])
     trainer.fit(model)
     trainer.test(model)
