@@ -20,6 +20,6 @@ class RNNSerieADataset(Dataset):
         # print(f'\r\033[KPicked {idx}', end=' ')
         x = self.train_x[idx]
         y = self.train_y[idx, 4]
-        x = torch.from_numpy(x)
-        y = torch.from_numpy(y)
+        x = torch.from_numpy(x.astype('float32'))
+        y = torch.from_numpy(y.astype('float32'))
         return x, y

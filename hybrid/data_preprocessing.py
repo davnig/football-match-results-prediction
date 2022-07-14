@@ -110,7 +110,9 @@ def data_manipulation(df: pd.DataFrame):
     df = convert_wide_to_long(df)
     df = fill_stat_values_in_hist_df(df)
     # delete group of 5 match having a NaN value
-    df = df.drop(df.iloc[13860:13866, :].index).reset_index(drop=True)
+    df = df.drop(
+        df.iloc[df[df['away_season'] == '-'].index.tolist()[0] - 5:df[df['away_season'] == '-'].index.tolist()[0] + 1,
+        :].index).reset_index(drop=True)
     # force correct type for all columns
     df = force_type_in_hist_df(df)
     print('===> Phase 2: DONE ')

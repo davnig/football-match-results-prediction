@@ -31,8 +31,8 @@ class HybridSerieADataset(Dataset):
         x_rnn_away = self.train_x_away[idx, 1:, :]
         x_mlp = self.train_x_mlp[idx, :1, :]
         y = self.train_y[idx, 0]
-        x_rnn_home = torch.from_numpy(x_rnn_home)
-        x_rnn_away = torch.from_numpy(x_rnn_away)
-        x_mlp = torch.from_numpy(x_mlp)
-        y = torch.from_numpy(y)
+        x_rnn_home = torch.from_numpy(x_rnn_home.astype('float32'))
+        x_rnn_away = torch.from_numpy(x_rnn_away.astype('float32'))
+        x_mlp = torch.from_numpy(x_mlp.astype('float32'))
+        y = torch.from_numpy(y.astype('float32'))
         return x_rnn_home, x_rnn_away, x_mlp, y
