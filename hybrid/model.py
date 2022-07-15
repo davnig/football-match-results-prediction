@@ -52,13 +52,12 @@ class HybridMLP(nn.Module):
 
 
 class HybridNetwork(pl.LightningModule):
-    def __init__(self, dataset, rnn_home_model: HybridRNN, rnn_away_model: HybridRNN, mlp_model: HybridMLP,
+    def __init__(self, dataset, rnn_model: HybridRNN, mlp_model: HybridMLP,
                  learning_rate: float = 0.001, batch_size: int = 32):
         super(HybridNetwork, self).__init__()
         self.save_hyperparameters()
         self.dataset = dataset
-        self.rnn_home = rnn_home_model
-        self.rnn_away = rnn_away_model
+        self.rnn = rnn_model
         self.mlp = mlp_model
         self.learning_rate = learning_rate
         self.batch_size = batch_size
@@ -84,13 +83,13 @@ class HybridNetwork(pl.LightningModule):
     def forward(self, x_rnn_home, x_rnn_away, x_mlp):
         cuda_0 = torch.device('cuda:0')
         ''' === RNN HOME FORWARD === '''
-        rnn_home_hidden = self.rnn_home.init_hidden(x_rnn_home.shape[0])
+        rnn_home_hidden = self.rnn.init_hidden(x_rnn_home.shape[0])
         rnn_home_hidden = rnn_home_hidden.to(cuda_0)
-        rnn_home_hidden = self.rnn_home(x_rnn_home, rnn_home_hidden)
+        rnn_home_hidden = self.rnn(x_rnn_home, rnn_home_hidden)
         ''' === RNN AWAY FORWARD === '''
-        rnn_away_hidden = self.rnn_away.init_hidden(x_rnn_home.shape[0])
+        rnn_away_hidden = self.rnn.init_hidden(x_rnn_away.shape[0])
         rnn_away_hidden = rnn_away_hidden.to(cuda_0)
-        rnn_away_hidden = self.rnn_away(x_rnn_away, rnn_away_hidden)
+        rnn_away_hidden = self.rnn(x_rnn_away, rnn_away_hidden)
         ''' === MLP FORWARD === '''
         x_train = torch.cat([x_mlp.reshape(x_mlp.shape[0], x_mlp.shape[2]), rnn_home_hidden, rnn_away_hidden], dim=1)
         y_hat = self.mlp(x_train)
