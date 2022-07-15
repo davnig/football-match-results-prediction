@@ -90,10 +90,6 @@ def data_manipulation(df: pd.DataFrame):
         return df
 
     print('===> Phase 2: DATA MANIPULATION ')
-    # if LESS_DATA:
-    #     df = remove_lineup(df)
-    #     df = remove_teams(df)
-    #     df = remove_referees(df)
     df = df.dropna()
     df = convert_date_str_to_datetime(df)
     df = sort_by_date_column(df)
@@ -108,7 +104,6 @@ def data_manipulation(df: pd.DataFrame):
     df = df.drop(
         df.iloc[df[df['away_season'] == '-'].index.tolist()[0] - 4:df[df['away_season'] == '-'].index.tolist()[0] + 1,
         :].index).reset_index(drop=True)
-    # df = df.drop(df.iloc[11550:11555, :].index).reset_index(drop=True)
     # force integer type for all columns except 'result'
     df = force_type_in_hist_df(df)
     print('===> Phase 2: DONE ')
