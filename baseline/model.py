@@ -12,7 +12,7 @@ from utils import accuracy
 class MLP(pl.LightningModule):
     def __init__(self, dataset, input_size: int, learning_rate: float = 0.001, batch_size: int = 32):
         super(MLP, self).__init__()
-        self.save_hyperparameters()
+        # self.save_hyperparameters()
         self.dataset = dataset
         self.learning_rate = learning_rate
         self.batch_size = batch_size
@@ -22,13 +22,15 @@ class MLP(pl.LightningModule):
         self.input_size = input_size
         self.flatten = nn.Flatten()
         self.layers_stack = nn.Sequential(
-            nn.Linear(input_size, 5120),
+            nn.Linear(input_size, 512),
             nn.ReLU(),
-            nn.Linear(5120, 1280),
+            nn.Linear(512, 512),
             nn.ReLU(),
-            nn.Linear(1280, 512),
+            nn.Linear(512, 256),
             nn.ReLU(),
-            nn.Linear(512, 3),
+            nn.Linear(256, 128),
+            nn.ReLU(),
+            nn.Linear(128, 3),
             nn.Softmax(dim=1)
         )
 

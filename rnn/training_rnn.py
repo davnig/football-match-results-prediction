@@ -8,14 +8,14 @@ from rnn.model import RNN
 from utils import count_features
 
 # If enabled, the model will not consider PLAYERS, COACHES, REFEREES and TEAMS features for training
-SIMPLE_MODEL = True
+SIMPLE_MODEL = False
 CSV_NAME = 'data_rnn_simple.csv' if SIMPLE_MODEL else 'data_rnn.csv'
 LOG_FOLDER_NAME = 'rnn_simple_results' if SIMPLE_MODEL else 'rnn_results'
 
 # hyper parameters
 LEARNING_RATE = 0.001
 NUM_EPOCHS = 400
-HIDDEN_SIZE = 256
+HIDDEN_SIZE = 128
 BATCH_SIZE = 32
 EARLY_STOP_DELTA = 0.000001
 EARLY_STOP_PATIENCE = 15

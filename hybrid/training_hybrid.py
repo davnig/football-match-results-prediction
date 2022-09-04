@@ -9,7 +9,7 @@ from hybrid.model import HybridRNN, HybridMLP, HybridNetwork
 from utils import MATCH_STATS_COLUMNS
 
 # If enabled, the model will not consider PLAYERS, COACHES, REFEREES and TEAMS features for training
-SIMPLE_MODEL = True
+SIMPLE_MODEL = False
 CSV_NAME = 'data_hybrid_simple.csv' if SIMPLE_MODEL else 'data_hybrid.csv'
 LOG_FOLDER_NAME = 'hybrid_simple_results' if SIMPLE_MODEL else 'hybrid_results'
 
@@ -34,7 +34,7 @@ if __name__ == '__main__':
     n_feats_rnn, n_feats_mlp = count_features(CSV_NAME)
     dataset = HybridSerieADataset(csv_file=CSV_NAME)
     rnn = HybridRNN(input_size=n_feats_rnn, hidden_size=HIDDEN_SIZE)
-    mlp = HybridMLP(HIDDEN_SIZE * 2 + n_feats_mlp)
+    mlp = HybridMLP(input_size=HIDDEN_SIZE * 2 + n_feats_mlp)
     model = HybridNetwork(dataset=dataset, rnn_model=rnn, mlp_model=mlp,
                           learning_rate=LEARNING_RATE, batch_size=BATCH_SIZE)
     summary(model)

@@ -10,7 +10,7 @@ from utils import accuracy
 class RNN(pl.LightningModule):
     def __init__(self, dataset, input_size, hidden_size, batch_size, learning_rate):
         super(RNN, self).__init__()
-        self.save_hyperparameters()
+        # self.save_hyperparameters()
         self.dataset = dataset
         self.hidden_size = hidden_size
         self.batch_size = batch_size

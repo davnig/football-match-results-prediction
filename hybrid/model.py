@@ -55,7 +55,7 @@ class HybridNetwork(pl.LightningModule):
     def __init__(self, dataset, rnn_model: HybridRNN, mlp_model: HybridMLP,
                  learning_rate: float = 0.001, batch_size: int = 32):
         super(HybridNetwork, self).__init__()
-        self.save_hyperparameters()
+        # self.save_hyperparameters()
         self.dataset = dataset
         self.rnn = rnn_model
         self.mlp = mlp_model
