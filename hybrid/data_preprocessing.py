@@ -2,7 +2,7 @@ import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 
 from data_encoding import encode_seasons, encode_players, remove_lineup, encode_remaining_feats, \
-    remove_teams, remove_referees
+    remove_teams, remove_referees, add_encoded_feats_if_missing
 from data_fixing import fix_issue_1, fix_issue_2, fix_issue_3
 from data_manipulation import convert_date_str_to_datetime, sort_by_date_column, cast_str_values_to_int, \
     add_result_column, explode_datetime_values, drop_date_cols, force_type_in_hist_df, fill_stat_values_in_hist_df
@@ -110,9 +110,11 @@ def data_manipulation(df: pd.DataFrame):
     df = convert_wide_to_long(df)
     df = fill_stat_values_in_hist_df(df)
     # delete group of 5 match having a NaN value
-    df = df.drop(
-        df.iloc[df[df['away_season'] == '-'].index.tolist()[0] - 5:df[df['away_season'] == '-'].index.tolist()[0] + 1,
-        :].index).reset_index(drop=True)
+    if len(df[df['away_season'] == '-'].index.tolist()) > 0:
+        df = df.drop(
+            df.iloc[
+            df[df['away_season'] == '-'].index.tolist()[0] - 5:df[df['away_season'] == '-'].index.tolist()[0] + 1,
+            :].index).reset_index(drop=True)
     # force correct type for all columns
     df = force_type_in_hist_df(df)
     print('===> Phase 2: DONE ')
@@ -135,6 +137,7 @@ def data_encoding(df: pd.DataFrame):
     df['home_year'] = le.fit_transform(df['home_year'])
     df['away_year'] = le.fit_transform(df['away_year'])
     df = encode_remaining_feats(df)
+    df = add_encoded_feats_if_missing(df)
     print('===> Phase 3: DONE ')
     return df
 

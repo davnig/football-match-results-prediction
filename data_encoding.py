@@ -72,6 +72,34 @@ def encode_remaining_feats(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def add_coaches_encoded_feats_if_missing(df: pd.DataFrame) -> pd.DataFrame:
+    feature = 'home_coach'
+    set_a = set([el.removeprefix(f'home_{feature}_') for el in df.filter(regex=f'^home_{feature}.*?').columns.tolist()])
+    set_b = set([el.removeprefix(f'away_{feature}_') for el in df.filter(regex=f'^away_{feature}.*?').columns.tolist()])
+    if len(set_a) > len(set_b):
+        # away_home_coach is missing features
+        columns_to_add = [f'away_{feature}_{el}' for el in list(set_a.difference(set_b))]
+        for col in columns_to_add:
+            df[col] = 0
+    if len(set_b) > len(set_a):
+        # home_home_coach is missing features
+        columns_to_add = [f'home_{feature}_{el}' for el in list(set_b.difference(set_a))]
+        for col in columns_to_add:
+            df[col] = 0
+    return df
+
+
+def add_players_encoded_feats_if_missing(df: pd.DataFrame) -> pd.DataFrame:
+    return df
+
+
+def add_encoded_feats_if_missing(df: pd.DataFrame) -> pd.DataFrame:
+    # home and away team must have same number of one-hot encoded features
+    df = add_coaches_encoded_feats_if_missing(df)
+    df = add_players_encoded_feats_if_missing(df)
+    return df
+
+
 def shift_home_team_cols_to_end(df: pd.DataFrame) -> pd.DataFrame:
     cols_to_shift = df.filter(regex='home_team', axis=1).columns
     home_teams_df = df[cols_to_shift].copy()
