@@ -36,13 +36,13 @@ class HybridMLP(nn.Module):
         self.layers = nn.Sequential(
             nn.Linear(input_size, 512),
             nn.ReLU(),
-            nn.Linear(512, 512),
-            nn.ReLU(),
             nn.Linear(512, 256),
             nn.ReLU(),
             nn.Linear(256, 128),
             nn.ReLU(),
-            nn.Linear(128, 3),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Linear(64, 3),
             nn.Softmax(dim=1)
         )
 
