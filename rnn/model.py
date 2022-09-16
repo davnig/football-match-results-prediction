@@ -19,6 +19,7 @@ class RNN(pl.LightningModule):
         self.val_set = Dataset()
         self.test_set = Dataset()
         self.linear = nn.Linear(input_size + hidden_size, hidden_size)
+        self.linear_2 = nn.Linear(hidden_size * 2, hidden_size)
         self.linear_out = nn.Linear(hidden_size, 3)
         self.tanh = nn.Tanh()
         self.softmax = nn.Softmax(dim=1)
@@ -41,18 +42,21 @@ class RNN(pl.LightningModule):
     def test_dataloader(self):
         return DataLoader(self.test_set, batch_size=self.batch_size)
 
-    def forward(self, x, hidden):
+    def forward(self, x, hidden, hidden_2):
         for i in range(x.shape[1]):
             input = torch.cat([x[:, i, :], hidden], dim=1)
             pre_hidden = self.linear(input)
             hidden = self.tanh(pre_hidden)
-            output = self.softmax(self.linear_out(hidden))
+            pre_hidden_2 = self.linear_2(torch.cat([hidden, hidden_2], dim=1))
+            hidden_2 = self.tanh(pre_hidden_2)
+            output = self.softmax(self.linear_out(hidden_2))
         return hidden, output
 
     def training_step(self, batch, batch_idx):
         x, y = batch
         hidden = self.init_hidden(x.shape[0])
-        _, y_hat = self(x, hidden)
+        hidden_2 = self.init_hidden(x.shape[0])
+        _, y_hat = self(x, hidden, hidden_2)
         loss = F.cross_entropy(y_hat, y)
         self.log('train_loss', loss)
         return loss
@@ -60,7 +64,8 @@ class RNN(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         x, y = batch
         hidden = self.init_hidden(x.shape[0])
-        _, y_hat = self(x, hidden)
+        hidden_2 = self.init_hidden(x.shape[0])
+        _, y_hat = self(x, hidden, hidden_2)
         val_loss = F.cross_entropy(y_hat, y)
         val_accuracy = accuracy(y, y_hat)
         self.log_dict({"val_accuracy": val_accuracy, "val_loss": val_loss}, prog_bar=True)
@@ -68,7 +73,8 @@ class RNN(pl.LightningModule):
     def test_step(self, batch, batch_idx):
         x, y = batch
         hidden = self.init_hidden(x.shape[0])
-        _, y_hat = self(x, hidden)
+        hidden_2 = self.init_hidden(x.shape[0])
+        _, y_hat = self(x, hidden, hidden_2)
         test_loss = F.cross_entropy(y_hat, y)
         test_accuracy = accuracy(y, y_hat)
         self.log_dict({"test_accuracy": test_accuracy, "test_loss": test_loss}, prog_bar=True)
