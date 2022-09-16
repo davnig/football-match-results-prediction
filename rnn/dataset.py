@@ -8,10 +8,13 @@ from utils import HISTORY_LEN
 class RNNSerieADataset(Dataset):
     def __init__(self, csv_file):
         df = pd.read_csv(csv_file)
-        data = df.values.reshape(-1, HISTORY_LEN, df.shape[1])
+        x_df = df.filter(regex='^(home|away).*$', axis=1)
+        x_data = x_df.values.reshape(-1, HISTORY_LEN, x_df.shape[1])
+        y_df = df.filter(regex='^.*(?:result).*$', axis=1)
+        y_data = y_df.values.reshape(-1, HISTORY_LEN, y_df.shape[1])
         del df
-        self.train_x = data[:, :, :-3]
-        self.train_y = data[:, :, -3:]
+        self.train_x = x_data
+        self.train_y = y_data
 
     def __len__(self) -> int:
         return len(self.train_x)
