@@ -9,7 +9,7 @@ from hybrid.model import HybridRNN, HybridMLP, HybridNetwork
 from utils import MATCH_STATS_COLUMNS
 
 # If enabled, the model will not consider PLAYERS, COACHES, REFEREES and TEAMS features for training
-SIMPLE_MODEL = True
+SIMPLE_MODEL = False
 CSV_NAME = 'data_hybrid_simple.csv' if SIMPLE_MODEL else 'data_hybrid.csv'
 LOG_FOLDER_NAME = 'hybrid_simple_results' if SIMPLE_MODEL else 'hybrid_results'
 

@@ -21,6 +21,7 @@ class RNN(pl.LightningModule):
         self.linear = nn.Linear(input_size + hidden_size, hidden_size)
         self.linear_2 = nn.Linear(hidden_size * 2, hidden_size)
         self.linear_out = nn.Linear(hidden_size, 3)
+        self.norm = nn.LayerNorm(hidden_size)
         self.tanh = nn.Tanh()
         self.softmax = nn.Softmax(dim=1)
 
@@ -46,9 +47,9 @@ class RNN(pl.LightningModule):
         for i in range(x.shape[1]):
             input = torch.cat([x[:, i, :], hidden], dim=1)
             pre_hidden = self.linear(input)
-            hidden = self.tanh(pre_hidden)
+            hidden = self.tanh(self.norm(pre_hidden))
             pre_hidden_2 = self.linear_2(torch.cat([hidden, hidden_2], dim=1))
-            hidden_2 = self.tanh(pre_hidden_2)
+            hidden_2 = self.tanh(self.norm(pre_hidden_2))
             output = self.softmax(self.linear_out(hidden_2))
         return hidden, output
 

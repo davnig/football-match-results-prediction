@@ -19,13 +19,15 @@ EARLY_STOP_DELTA = 0.000001
 EARLY_STOP_PATIENCE = 20
 
 if __name__ == '__main__':
-    n_of_feats = count_features(CSV_NAME) - 3
-    dataset = SerieAMatchesDataset(csv_file=CSV_NAME)
-    model = MLP(dataset=dataset, input_size=n_of_feats, learning_rate=LEARNING_RATE)
-    summary(model)
-    logger = TensorBoardLogger("../training_logs", name=LOG_FOLDER_NAME)
-    early_stop = EarlyStopping(monitor="val_loss", min_delta=EARLY_STOP_DELTA, patience=EARLY_STOP_PATIENCE, mode="min",
-                               check_on_train_epoch_end=False)
-    trainer = Trainer(gpus=1, max_epochs=NUM_EPOCHS, logger=logger, callbacks=[early_stop])
-    trainer.fit(model)
-    trainer.test(model)
+    for i in range(3):
+        n_of_feats = count_features(CSV_NAME) - 3
+        dataset = SerieAMatchesDataset(csv_file=CSV_NAME)
+        model = MLP(dataset=dataset, input_size=n_of_feats, learning_rate=LEARNING_RATE)
+        summary(model)
+        logger = TensorBoardLogger("../training_logs", name=LOG_FOLDER_NAME)
+        early_stop = EarlyStopping(monitor="val_loss", min_delta=EARLY_STOP_DELTA, patience=EARLY_STOP_PATIENCE,
+                                   mode="min",
+                                   check_on_train_epoch_end=False)
+        trainer = Trainer(gpus=1, max_epochs=NUM_EPOCHS, logger=logger, callbacks=[early_stop])
+        trainer.fit(model)
+        trainer.test(model)

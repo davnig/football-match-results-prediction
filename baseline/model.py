@@ -24,12 +24,16 @@ class MLP(pl.LightningModule):
         self.layers_stack = nn.Sequential(
             nn.Linear(input_size, 512),
             nn.ReLU(),
+            nn.BatchNorm1d(num_features=512),
             nn.Linear(512, 256),
             nn.ReLU(),
+            nn.BatchNorm1d(num_features=256),
             nn.Linear(256, 128),
             nn.ReLU(),
+            nn.BatchNorm1d(num_features=128),
             nn.Linear(128, 64),
             nn.ReLU(),
+            nn.BatchNorm1d(num_features=64),
             nn.Linear(64, 3),
             nn.Softmax(dim=1)
         )
