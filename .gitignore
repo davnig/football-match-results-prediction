@@ -2,3 +2,5 @@
 /baseline/*.csv
 /hybrid/*.csv
 /rnn/*.csv
+/.idea
+/training_logs
